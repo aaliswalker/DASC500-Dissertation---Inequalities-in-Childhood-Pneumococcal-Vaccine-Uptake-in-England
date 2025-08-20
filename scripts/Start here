@@ -2,11 +2,9 @@
 
 The repository contains several R scripts, each labelled according to its role in the workflow:
 
-🫧 cleaning.R – Data wrangling and preprocessing, including renaming columns, harmonising COVER and IMD datasets, and preparing them for analysis.
+🫧 Stage1.R – Data wrangling and preprocessing, including renaming columns, harmonising COVER and IMD datasets, and preparing them for analysis.
 
-🫧 stage1.R – Initial descriptive analysis of vaccine uptake trends across years and cohorts (2+1 vs 1+1 schedule).
-
-🫧 stage2.R – Inequalities analysis, examining uptake by deprivation (IMD quintiles), geography, and other stratifiers.
+🫧 stage2.R – Initial descriptive analysis of vaccine uptake trends across years and cohorts (2+1 vs 1+1 schedule). Inequalities analysis, examining uptake by deprivation (IMD quintiles), geography, and other stratifiers.
 
 🫧 stage3.R – Estimating disease susceptibility by combining uptake with published vaccine effectiveness data.
 
