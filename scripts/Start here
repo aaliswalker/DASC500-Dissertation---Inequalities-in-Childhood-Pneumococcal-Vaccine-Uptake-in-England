@@ -9,4 +9,4 @@ The repository contains several R scripts, each labelled according to its role i
 🫧 stage3.R – Initial descriptive analysis of vaccine uptake trends across years and cohorts (2+1 vs 1+1 schedule). Inequalities analysis, examining uptake by deprivation (IMD quintiles), geography, and other stratifiers.
  Estimating disease susceptibility by combining uptake with published vaccine effectiveness data.
 
-🫧 geo_graphs.R – Scripts for generating geographic visualisations (maps of vaccine uptake and inequalities by local authority).
+🫧 Stage4.R – Scripts for generating geographic visualisations (maps of vaccine uptake and susceptibility by local authority).
