@@ -24,8 +24,8 @@ This repository contains the code, data processing, and analysis for my MSc Heal
 🫧 Inequality analysis – exploring variation by geography and deprivation.
 
 ## 🌸 Repository Structure
-├── data/              # Data sources (publicly available or cleaned versions)
-├── scripts/           # R scripts for data cleaning, analysis, and plotting
-├── results/           # Figures, tables, and model outputs
-└── README.md          # Project documentation
+- data/              # Data sources (publicly available or cleaned versions)
+- scripts/           # R scripts for data cleaning, analysis, and plotting
+- results/           # Figures, tables, and model outputs
+- README.md          # Project documentation
 
