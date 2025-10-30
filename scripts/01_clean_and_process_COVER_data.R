@@ -42,12 +42,9 @@ imd_file = here("data", "UTLA_summaries.xlsx")
 clean_dir = here("data", "cleaned")
 dir.create(clean_dir, showWarnings = FALSE, recursive = TRUE)
 
-
-
-
 #### 🫧 Load UTLA codes from IMD file 🫧 ####
-imd_file = "UTLA_summaries.xlsx"
 imd_sheet = "IMD" 
+
 # Read the data
 utla_imd = read_excel(imd_file, sheet = imd_sheet)
 # Preview data structure
