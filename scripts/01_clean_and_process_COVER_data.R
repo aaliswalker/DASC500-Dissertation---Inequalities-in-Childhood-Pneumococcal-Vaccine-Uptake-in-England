@@ -61,9 +61,6 @@ print(utla_list)
 
 valid_utlas = utla_list$UTLA_code
 
-
-
-
 #####################################
 #####################################
 
@@ -1995,7 +1992,7 @@ map_utla_codes <- function(df) {
       Population_12m = as.numeric(Population_12m),
       PCV_12m = as.numeric(PCV_12m)
     ) %>%
-    filter(ONS_Code %in% valid_utlas_2022)
+    filter(ONS_Code %in% valid_utlas)
   
   la24 = read_ods(file_path, sheet = "24m_UTLA_GOR", skip = 4) %>%
     select(`ONS UTLA code`, `UTLA name`, `24m denominator`, `24m PCV Booster%`) %>%
@@ -2010,7 +2007,7 @@ map_utla_codes <- function(df) {
       Population_24m = as.numeric(Population_24m),
       PCV_24m = as.numeric(PCV_24m)
     ) %>%
-    filter(ONS_Code %in% valid_utlas_2022)
+    filter(ONS_Code %in% valid_utlas)
   
   merged_LA = full_join(la12, la24, by = c("ONS_Code", "UTLA_Name")) %>%
     mutate(Year = "2022/2023", Quarter = "Q1", Timepoint = 0, Vaccine_Schedule = 1)
@@ -2031,7 +2028,7 @@ map_utla_codes <- function(df) {
     map_utla_codes() %>%
     mutate(Population_12m = as.numeric(Population_12m),
            PCV_12m = as.numeric(PCV_12m)) %>%
-    filter(ONS_Code %in% valid_utlas_2022)
+    filter(ONS_Code %in% valid_utlas)
   
   la24 = read_ods(file_path, sheet = "24m_UTLA_GOR", skip = 5) %>%
     select(`ONS UTLA code`, `UTLA name`, `24m denominator`, `24m PCV Booster%`) %>%
@@ -2044,7 +2041,7 @@ map_utla_codes <- function(df) {
     map_utla_codes() %>%
     mutate(Population_24m = as.numeric(Population_24m),
            PCV_24m = as.numeric(PCV_24m)) %>%
-    filter(ONS_Code %in% valid_utlas_2022)
+    filter(ONS_Code %in% valid_utlas)
   
   merged_LA = full_join(la12, la24, by = c("ONS_Code", "UTLA_Name")) %>%
     mutate(Year = "2022/2023", Quarter = "Q2", Timepoint = 1, Vaccine_Schedule = 1)
@@ -2067,7 +2064,7 @@ map_utla_codes <- function(df) {
     map_utla_codes() %>%
     mutate(Population_12m = as.numeric(Population_12m),
            PCV_12m = as.numeric(PCV_12m)) %>%
-    filter(ONS_Code %in% valid_utlas_2022)
+    filter(ONS_Code %in% valid_utlas)
   
   la24 = read_ods(file_path, sheet = "24m_UTLA_GOR", skip = 5) %>%
     select(`ONS UTLA code`, `UTLA name`, `24m denominator`, `24m PCV Booster%`) %>%
@@ -2080,7 +2077,7 @@ map_utla_codes <- function(df) {
     map_utla_codes() %>%
     mutate(Population_24m = as.numeric(Population_24m),
            PCV_24m = as.numeric(PCV_24m)) %>%
-    filter(ONS_Code %in% valid_utlas_2022)
+    filter(ONS_Code %in% valid_utlas)
   
   merged_LA = full_join(la12, la24, by = c("ONS_Code", "UTLA_Name")) %>%
     mutate(Year = "2022/2023", Quarter = "Q3", Timepoint = 2, Vaccine_Schedule = 1)
@@ -2103,7 +2100,7 @@ map_utla_codes <- function(df) {
     map_utla_codes() %>%
     mutate(Population_12m = as.numeric(Population_12m),
            PCV_12m = as.numeric(PCV_12m)) %>%
-    filter(ONS_Code %in% valid_utlas_2022)
+    filter(ONS_Code %in% valid_utlas)
   
   la24 = read_ods(file_path, sheet = "24m_UTLA_GOR", skip = 5) %>%
     select(`ONS upper tier local authority code`, `Upper tier local authority name`, `24 month denominator`, `24 month PCV Booster%`) %>%
@@ -2116,7 +2113,7 @@ map_utla_codes <- function(df) {
     map_utla_codes() %>%
     mutate(Population_24m = as.numeric(Population_24m),
            PCV_24m = as.numeric(PCV_24m)) %>%
-    filter(ONS_Code %in% valid_utlas_2022)
+    filter(ONS_Code %in% valid_utlas)
   
   merged_LA = full_join(la12, la24, by = c("ONS_Code", "UTLA_Name")) %>%
     mutate(Year = "2022/2023", Quarter = "Q4", Timepoint = 3, Vaccine_Schedule = 1)
@@ -2130,7 +2127,7 @@ combined_2022 %>%
   group_by(Quarter) %>%
   summarise(Unique_UTLAs = n_distinct(ONS_Code))
 
-missing_utlas = setdiff(valid_utlas_2022, combined_2022$ONS_Code)
+missing_utlas = setdiff(valid_utlas, combined_2022$ONS_Code)
 print(missing_utlas)
 
 utla_list %>% filter(UTLA_code %in% missing_utlas)
@@ -2430,8 +2427,7 @@ utla_list %>% filter(UTLA_code %in% missing_utlas)
 
 
 #### 🫧 YEAR-BY-YEAR UTLA COVERAGE 🫧 ####
-
-all_years_data = read.csv("C:/Users/User/OneDrive/HSD MSC/Diss Data/Stage 2 data/COVER_All_Years_UNIMPUTED.csv")
+all_years_data =read.csv(here("cleaned_Data", "COVER_All_Years_UNIMPUTED.csv"))
 
 coverage_by_year <- all_years_data %>%
   group_by(Year) %>%
