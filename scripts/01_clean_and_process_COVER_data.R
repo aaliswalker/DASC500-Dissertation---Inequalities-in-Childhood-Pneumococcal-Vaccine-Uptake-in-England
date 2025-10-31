@@ -64,6 +64,20 @@ valid_utlas = utla_list$UTLA_code
 #####################################
 #####################################
 
+#### ⋆˚࿔ Set up functions 🫧 ####
+
+map_utla_codes <- function(df) {
+  df %>%
+    left_join(utla_list, by = c("UTLA_Name" = "UTLA_name")) %>%
+    mutate(
+      ONS_Code = ifelse(ONS_Code %in% valid_utlas, ONS_Code, UTLA_code)
+    ) %>%
+    select(-UTLA_code)
+}
+
+#####################################
+#####################################
+
 #### ⋆˚࿔ 2 0 1 3 — Q2 🫧 ####
 
   #### 🫧 2013 Q2 🫧 ####
@@ -1801,15 +1815,6 @@ utla_list %>% filter(UTLA_code %in% missing_utlas)
 
 ##### ⋆˚࿔ 2 0 2 1 𝜗𝜚˚ ⋆ #####
 
-map_utla_codes <- function(df) {
-  df %>%
-    left_join(utla_list, by = c("UTLA_Name" = "UTLA_name")) %>%
-    mutate(
-      ONS_Code = ifelse(ONS_Code %in% valid_utlas, ONS_Code, UTLA_code)
-    ) %>%
-    select(-UTLA_code)
-}
-
   ##### 🫧 Q1 🫧 #####
   file_path = file.path(main_dir, "2021 Q1.ods")
   
@@ -1965,16 +1970,6 @@ utla_list %>% filter(UTLA_code %in% missing_utlas)
 #####################################
 
 #### ⋆˚࿔ 2 0 2 2 𝜗𝜚˚ ⋆ ####
-
-# Function to map UTLA names to codes if needed
-map_utla_codes <- function(df) {
-  df %>%
-    left_join(utla_list, by = c("UTLA_Name" = "UTLA_name")) %>%
-    mutate(
-      ONS_Code = ifelse(ONS_Code %in% valid_utlas, ONS_Code, UTLA_code)
-    ) %>%
-    select(-UTLA_code)
-}
 
   #### 🫧 Q1 🫧 ####
   file_path = file.path(main_dir, "2022 Q1.ods")
@@ -2138,16 +2133,6 @@ utla_list %>% filter(UTLA_code %in% missing_utlas)
 
 #### ⋆˚࿔ 2 0 2 3 𝜗𝜚˚ ⋆ ####
 
-map_utla_codes <- function(df) {
-  df %>%
-    left_join(utla_list, by = c("UTLA_Name" = "UTLA_name")) %>%
-    mutate(
-      ONS_Code = ifelse(ONS_Code %in% valid_utlas, ONS_Code, UTLA_code),
-      ONS_Code = trimws(ONS_Code)
-    ) %>%
-    select(-UTLA_code)
-}
-
   ####🫧 Q1 🫧####
   file_path = file.path(main_dir, "2023 Q1.ods")
   
@@ -2292,16 +2277,6 @@ utla_list %>% filter(UTLA_code %in% missing_utlas)
 #####################################
 
 #### ⋆˚࿔ 2 0 2 4 𝜗𝜚˚ ⋆ ####
-
-map_utla_codes <- function(df) {
-  df %>%
-    left_join(utla_list, by = c("UTLA_Name" = "UTLA_name")) %>%
-    mutate(
-      ONS_Code = ifelse(ONS_Code %in% valid_utlas, ONS_Code, UTLA_code),
-      ONS_Code = trimws(ONS_Code)
-    ) %>%
-    select(-UTLA_code)
-}
 
   ####🫧 Q1 🫧####
   file_path = file.path(main_dir, "2024 Q1.ods")
