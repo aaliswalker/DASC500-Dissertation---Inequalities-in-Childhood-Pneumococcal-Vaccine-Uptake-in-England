@@ -42,12 +42,9 @@ imd_file = here("data", "UTLA_summaries.xlsx")
 clean_dir = here("data", "cleaned")
 dir.create(clean_dir, showWarnings = FALSE, recursive = TRUE)
 
-
-
-
 #### 🫧 Load UTLA codes from IMD file 🫧 ####
-imd_file = "UTLA_summaries.xlsx"
 imd_sheet = "IMD" 
+
 # Read the data
 utla_imd = read_excel(imd_file, sheet = imd_sheet)
 # Preview data structure
@@ -64,8 +61,19 @@ print(utla_list)
 
 valid_utlas = utla_list$UTLA_code
 
+#####################################
+#####################################
 
+#### ⋆˚࿔ Set up functions 🫧 ####
 
+map_utla_codes <- function(df) {
+  df %>%
+    left_join(utla_list, by = c("UTLA_Name" = "UTLA_name")) %>%
+    mutate(
+      ONS_Code = ifelse(ONS_Code %in% valid_utlas, ONS_Code, UTLA_code)
+    ) %>%
+    select(-UTLA_code)
+}
 
 #####################################
 #####################################
@@ -1807,15 +1815,6 @@ utla_list %>% filter(UTLA_code %in% missing_utlas)
 
 ##### ⋆˚࿔ 2 0 2 1 𝜗𝜚˚ ⋆ #####
 
-map_utla_codes <- function(df) {
-  df %>%
-    left_join(utla_list, by = c("UTLA_Name" = "UTLA_name")) %>%
-    mutate(
-      ONS_Code = ifelse(ONS_Code %in% valid_utlas, ONS_Code, UTLA_code)
-    ) %>%
-    select(-UTLA_code)
-}
-
   ##### 🫧 Q1 🫧 #####
   file_path = file.path(main_dir, "2021 Q1.ods")
   
@@ -1972,16 +1971,6 @@ utla_list %>% filter(UTLA_code %in% missing_utlas)
 
 #### ⋆˚࿔ 2 0 2 2 𝜗𝜚˚ ⋆ ####
 
-# Function to map UTLA names to codes if needed
-map_utla_codes <- function(df) {
-  df %>%
-    left_join(utla_list, by = c("UTLA_Name" = "UTLA_name")) %>%
-    mutate(
-      ONS_Code = ifelse(ONS_Code %in% valid_utlas, ONS_Code, UTLA_code)
-    ) %>%
-    select(-UTLA_code)
-}
-
   #### 🫧 Q1 🫧 ####
   file_path = file.path(main_dir, "2022 Q1.ods")
   
@@ -1998,7 +1987,7 @@ map_utla_codes <- function(df) {
       Population_12m = as.numeric(Population_12m),
       PCV_12m = as.numeric(PCV_12m)
     ) %>%
-    filter(ONS_Code %in% valid_utlas_2022)
+    filter(ONS_Code %in% valid_utlas)
   
   la24 = read_ods(file_path, sheet = "24m_UTLA_GOR", skip = 4) %>%
     select(`ONS UTLA code`, `UTLA name`, `24m denominator`, `24m PCV Booster%`) %>%
@@ -2013,7 +2002,7 @@ map_utla_codes <- function(df) {
       Population_24m = as.numeric(Population_24m),
       PCV_24m = as.numeric(PCV_24m)
     ) %>%
-    filter(ONS_Code %in% valid_utlas_2022)
+    filter(ONS_Code %in% valid_utlas)
   
   merged_LA = full_join(la12, la24, by = c("ONS_Code", "UTLA_Name")) %>%
     mutate(Year = "2022/2023", Quarter = "Q1", Timepoint = 0, Vaccine_Schedule = 1)
@@ -2034,7 +2023,7 @@ map_utla_codes <- function(df) {
     map_utla_codes() %>%
     mutate(Population_12m = as.numeric(Population_12m),
            PCV_12m = as.numeric(PCV_12m)) %>%
-    filter(ONS_Code %in% valid_utlas_2022)
+    filter(ONS_Code %in% valid_utlas)
   
   la24 = read_ods(file_path, sheet = "24m_UTLA_GOR", skip = 5) %>%
     select(`ONS UTLA code`, `UTLA name`, `24m denominator`, `24m PCV Booster%`) %>%
@@ -2047,7 +2036,7 @@ map_utla_codes <- function(df) {
     map_utla_codes() %>%
     mutate(Population_24m = as.numeric(Population_24m),
            PCV_24m = as.numeric(PCV_24m)) %>%
-    filter(ONS_Code %in% valid_utlas_2022)
+    filter(ONS_Code %in% valid_utlas)
   
   merged_LA = full_join(la12, la24, by = c("ONS_Code", "UTLA_Name")) %>%
     mutate(Year = "2022/2023", Quarter = "Q2", Timepoint = 1, Vaccine_Schedule = 1)
@@ -2070,7 +2059,7 @@ map_utla_codes <- function(df) {
     map_utla_codes() %>%
     mutate(Population_12m = as.numeric(Population_12m),
            PCV_12m = as.numeric(PCV_12m)) %>%
-    filter(ONS_Code %in% valid_utlas_2022)
+    filter(ONS_Code %in% valid_utlas)
   
   la24 = read_ods(file_path, sheet = "24m_UTLA_GOR", skip = 5) %>%
     select(`ONS UTLA code`, `UTLA name`, `24m denominator`, `24m PCV Booster%`) %>%
@@ -2083,7 +2072,7 @@ map_utla_codes <- function(df) {
     map_utla_codes() %>%
     mutate(Population_24m = as.numeric(Population_24m),
            PCV_24m = as.numeric(PCV_24m)) %>%
-    filter(ONS_Code %in% valid_utlas_2022)
+    filter(ONS_Code %in% valid_utlas)
   
   merged_LA = full_join(la12, la24, by = c("ONS_Code", "UTLA_Name")) %>%
     mutate(Year = "2022/2023", Quarter = "Q3", Timepoint = 2, Vaccine_Schedule = 1)
@@ -2106,7 +2095,7 @@ map_utla_codes <- function(df) {
     map_utla_codes() %>%
     mutate(Population_12m = as.numeric(Population_12m),
            PCV_12m = as.numeric(PCV_12m)) %>%
-    filter(ONS_Code %in% valid_utlas_2022)
+    filter(ONS_Code %in% valid_utlas)
   
   la24 = read_ods(file_path, sheet = "24m_UTLA_GOR", skip = 5) %>%
     select(`ONS upper tier local authority code`, `Upper tier local authority name`, `24 month denominator`, `24 month PCV Booster%`) %>%
@@ -2119,7 +2108,7 @@ map_utla_codes <- function(df) {
     map_utla_codes() %>%
     mutate(Population_24m = as.numeric(Population_24m),
            PCV_24m = as.numeric(PCV_24m)) %>%
-    filter(ONS_Code %in% valid_utlas_2022)
+    filter(ONS_Code %in% valid_utlas)
   
   merged_LA = full_join(la12, la24, by = c("ONS_Code", "UTLA_Name")) %>%
     mutate(Year = "2022/2023", Quarter = "Q4", Timepoint = 3, Vaccine_Schedule = 1)
@@ -2133,7 +2122,7 @@ combined_2022 %>%
   group_by(Quarter) %>%
   summarise(Unique_UTLAs = n_distinct(ONS_Code))
 
-missing_utlas = setdiff(valid_utlas_2022, combined_2022$ONS_Code)
+missing_utlas = setdiff(valid_utlas, combined_2022$ONS_Code)
 print(missing_utlas)
 
 utla_list %>% filter(UTLA_code %in% missing_utlas)
@@ -2143,16 +2132,6 @@ utla_list %>% filter(UTLA_code %in% missing_utlas)
 #####################################
 
 #### ⋆˚࿔ 2 0 2 3 𝜗𝜚˚ ⋆ ####
-
-map_utla_codes <- function(df) {
-  df %>%
-    left_join(utla_list, by = c("UTLA_Name" = "UTLA_name")) %>%
-    mutate(
-      ONS_Code = ifelse(ONS_Code %in% valid_utlas, ONS_Code, UTLA_code),
-      ONS_Code = trimws(ONS_Code)
-    ) %>%
-    select(-UTLA_code)
-}
 
   ####🫧 Q1 🫧####
   file_path = file.path(main_dir, "2023 Q1.ods")
@@ -2299,16 +2278,6 @@ utla_list %>% filter(UTLA_code %in% missing_utlas)
 
 #### ⋆˚࿔ 2 0 2 4 𝜗𝜚˚ ⋆ ####
 
-map_utla_codes <- function(df) {
-  df %>%
-    left_join(utla_list, by = c("UTLA_Name" = "UTLA_name")) %>%
-    mutate(
-      ONS_Code = ifelse(ONS_Code %in% valid_utlas, ONS_Code, UTLA_code),
-      ONS_Code = trimws(ONS_Code)
-    ) %>%
-    select(-UTLA_code)
-}
-
   ####🫧 Q1 🫧####
   file_path = file.path(main_dir, "2024 Q1.ods")
   
@@ -2433,8 +2402,7 @@ utla_list %>% filter(UTLA_code %in% missing_utlas)
 
 
 #### 🫧 YEAR-BY-YEAR UTLA COVERAGE 🫧 ####
-
-all_years_data = read.csv("C:/Users/User/OneDrive/HSD MSC/Diss Data/Stage 2 data/COVER_All_Years_UNIMPUTED.csv")
+all_years_data =read.csv(here("cleaned_Data", "COVER_All_Years_UNIMPUTED.csv"))
 
 coverage_by_year <- all_years_data %>%
   group_by(Year) %>%
