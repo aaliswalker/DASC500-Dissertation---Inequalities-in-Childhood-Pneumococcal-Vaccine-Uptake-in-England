@@ -184,7 +184,7 @@ quarterly_schedule_all_scenarios <- map_dfr(ve_scenarios, function(scenario) {
 # =============================================================================
 
 # Load England map 
-england_map <- st_read(here("data", "Local_Authority_(Upper_Tier)_IMD_2019_(WGS84)", "Local_Authority_(Upper_Tier)_IMD_2019_(WGS84).shp"))
+england_map <- st_read(here("data", "Shapefile", "Local_Authority_(Upper_Tier)_IMD_2019_(WGS84).shp"))
 
 # Calculate geographic susceptibility for all scenarios
 la_susceptibility_all_scenarios <- map_dfr(ve_scenarios, function(scenario) {

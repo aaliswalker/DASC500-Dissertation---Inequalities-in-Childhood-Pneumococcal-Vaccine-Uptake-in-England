@@ -27,6 +27,7 @@ library(readr)
 library(dplyr)
 library(ggplot2)
 library(RColorBrewer)
+library(colorspace)
 library(tidyr)
 library(ggrepel)
 library(sf)         
@@ -69,8 +70,18 @@ imd_subset <- imd_data[, c("Upper Tier Local Authority District code (2019)",
 # Rename for clarity
 colnames(imd_subset) <- c("utla_code", "utla_name", "imd_score")
 
+# Remove City of London & Isles of Scilly
+imd_retained_utla_subset = imd_subset %>%
+  filter(
+    !utla_name %in% c("City of London", "Isles of Scilly")
+  )
+
+# Create IMD quintiles
+imd_quintiles_assigned <- imd_retained_utla_subset %>%
+  mutate(imd_quintile = ntile(imd_score, 5))
+
 # Save cleaned IMD data to output directory
-write.csv(imd_subset, file.path(output_dir, "cleaned_imd_data.csv"), row.names = FALSE)
+write.csv(imd_quintiles_assigned, file.path(output_dir, "cleaned_imd_data.csv"), row.names = FALSE)
 cat("IMD data processed and saved\n")
 
 #### 🫧 COVER Data Consolidation and Cleaning ####
@@ -201,8 +212,7 @@ cat("Records REMOVED:", format(records_removed, big.mark = ","),
 
 # Merge datasets and create IMD quintiles
 cover_merged <- cover %>%
-  left_join(imd, by = c("ONS_Code" = "utla_code")) %>%
-  mutate(imd_quintile = ntile(imd_score, 5))
+  left_join(imd, by = c("ONS_Code" = "utla_code")) 
 
 # Check quintile distribution
 quintile_summary <- cover_merged %>%
@@ -219,7 +229,7 @@ cat("Merged data saved\n")
 #### 🫧 Geographic Visualization of IMD Quintiles ####
 
 # Try to load England shapefile
-shapefile_path <- file.path(imd_data_dir, "Local_Authority_(Upper_Tier)_IMD_2019_(WGS84)", 
+shapefile_path <- file.path(imd_data_dir, "Shapefile", 
                             "Local_Authority_(Upper_Tier)_IMD_2019_(WGS84).shp")
 
 if (!file.exists(shapefile_path)) {
@@ -235,21 +245,25 @@ if (!file.exists(shapefile_path)) {
   imd_quintile_map_data <- england_map %>%
     left_join(
       cover_merged %>%
-        filter(Year == "2023/2024" | Year == max(Year)) %>%  # Use most recent year
+        filter(Year == "2019/2020") %>%  # Use most recent year
         select(ONS_Code, utla_name, imd_quintile) %>%
         distinct() %>%
         mutate(ONS_Code = as.character(ONS_Code)),
       by = c("ctyua19cd" = "ONS_Code")
     )
   
+  # Set up colour scheme for quintile mapping
+  purples <- brewer.pal(5, "Purples")
+  purples_intense <- darken(purples, amount = 0.15)
+  
   # Create IMD quintile assignment map
   quintile_map <- ggplot(imd_quintile_map_data) +
     geom_sf(aes(fill = as.factor(imd_quintile)), color = "white", linewidth = 0.2) +
     scale_fill_manual(
       name = "IMD Quintile",
-      values = viridis::viridis(5),
+      values = purples_intense, #viridis::viridis(5),
       labels = c("1 (Least Deprived)", "2", "3", "4", "5 (Most Deprived)"),
-      na.value = "grey90"
+      na.value = "grey0"
     ) +
     labs(
       title = "Index of Multiple Deprivation Quintiles by Upper Tier Local Authority",
