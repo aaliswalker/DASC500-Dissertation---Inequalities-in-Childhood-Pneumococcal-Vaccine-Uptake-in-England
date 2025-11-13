@@ -199,6 +199,7 @@ cat("Missing 24-month coverage data:", missing_24m, "observations (",
 cat("\n=== BOOSTER GAP ANALYSIS WITH 1-YEAR LAG ===\n")
 
 # Try to load pre-calculated booster gap data from Script 01
+cleaned_data_dir <- here("data/cleaned") 
 booster_gap_file <- file.path(cleaned_data_dir, "COVER_Booster_Gap_1YearLag.csv")
 
 if (file.exists(booster_gap_file)) {

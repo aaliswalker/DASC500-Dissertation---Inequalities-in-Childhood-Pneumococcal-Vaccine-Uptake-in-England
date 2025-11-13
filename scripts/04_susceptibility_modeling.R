@@ -525,29 +525,6 @@ figure5_alternate_corrected <- ggplot(map_data_alternate) +
 print(figure5_alternate_corrected)
 
 # =============================================================================
-# GENERATE UTLA LISTS BY QUINTILE
-# =============================================================================
-
-# Create clean list of LAs by IMD quintile
-la_by_quintile <- data_clean %>%
-  filter(Year == "2023/2024") %>%
-  select(utla_name, imd_quintile) %>%
-  distinct() %>%
-  arrange(imd_quintile, utla_name)
-
-# Print formatted lists for Supporting Information
-for(q in 1:5) {
-  cat("\n", "=================", "\n")
-  cat("IMD Quintile", q, if(q == 1) "(Least Deprived)" else if(q == 5) "(Most Deprived)", "\n")
-  cat("=================", "\n")
-  las <- la_by_quintile %>% 
-    filter(imd_quintile == q) %>% 
-    pull(utla_name) %>%
-    sort()
-  cat(paste(las, collapse = "\n"), "\n")
-}
-
-# =============================================================================
 # LONDON ANALYSIS - WITH AND WITHOUT LONDON
 # =============================================================================
 
@@ -808,5 +785,4 @@ if(length(bham_1plus1_12m_lag) > 0) {
     cat(" difference from 2+1 (alternate):", sprintf("%+.1f", (susceptibility_1plus1_alternate_corrected - susceptibility_2plus1_corrected)*100), "pp\n")
   }
 }
-
 
