@@ -4,23 +4,33 @@
 # 
 # DESCRIPTION: 
 # - Implements susceptibility modeling using vaccine effectiveness estimates
+# - CORRECTED: Uses 1-year lag methodology (same birth cohorts over time)
+# - CORRECTED: Uses non-imputed, boundary-corrected data
 # - Calculates susceptibility by deprivation quintile and geographic area
 # - Compares baseline vs alternate vaccine effectiveness assumptions
 # - Generates susceptibility trend plots and geographic maps
 # - Performs validation analysis for individual local authorities
 #
+# CRITICAL CORRECTIONS IMPLEMENTED:
+# - Uses non-imputed data from Script 2 output
+# - Implements 1-year lag for susceptibility calculations
+# - p0 = unvaccinated (from lagged 12m data)
+# - p1 = primary only (lagged 12m - current 24m)
+# - p2 = fully protected (current 24m)
+# - Excludes 2013/2014 (insufficient lag data)
+#
 # MAIN SECTIONS:
 # - Vaccine effectiveness scenario definitions
-# - Susceptibility calculations by deprivation quintile
-# - National level susceptibility calculations  
+# - CORRECTED: 1-year lag susceptibility calculations by deprivation quintile
+# - CORRECTED: 1-year lag national level susceptibility calculations  
 # - Geographic susceptibility mapping
 # - London inclusion/exclusion analysis
 # - Model validation and summary statistics
 #
 # INPUTS: 
-# - cleaned_Data/COVER_All_Years_MERGED_WITH_IMD.csv
-# - data/Local_Authority_(Upper_Tier)_IMD_2019_(WGS84)/ (shapefile folder)
-# OUTPUTS: Susceptibility trend plots, geographic maps, validation statistics
+# - output/COVER_All_Years_MERGED_WITH_IMD_NO_IMPUTATION.csv (corrected data)
+# - data/Shapefile/Local_Authority_(Upper_Tier)_IMD_2019_(WGS84).shp
+# OUTPUTS: Corrected susceptibility trend plots, geographic maps, validation statistics
 #===============================================================================
 
 # =============================================================================
@@ -44,11 +54,30 @@ library("jsonlite")
 library("here")
 
 # =============================================================================
-# LOAD AND PREPARE DATA
+# LOAD DATA
 # =============================================================================
 
-# Load main dataset
-data_clean <- read.csv(here("cleaned_Data", "COVER_All_Years_MERGED_WITH_IMD.csv"))
+# Load boundary-corrected, non-imputed data from Script 2 output
+data_file <- here("output", "COVER_All_Years_MERGED_WITH_IMD_NO_IMPUTATION.csv")
+shapefile_path <- here("data", "Shapefile", "Local_Authority_(Upper_Tier)_IMD_2019_(WGS84).shp")
+
+# Load data and map
+data_clean <- read.csv(data_file)
+england_map <- st_read(shapefile_path)
+
+
+if (!file.exists(data_file)) {
+  stop("Boundary-corrected merged data not found. Please run Script 02 first.")
+}
+
+data_clean <- read.csv(data_file)
+
+cat("=== DATA VERIFICATION ===\n")
+cat("Using corrected dataset:", basename(data_file), "\n")
+cat("Data range:", min(data_clean$Year, na.rm = TRUE), "to", max(data_clean$Year, na.rm = TRUE), "\n")
+cat("Total observations:", nrow(data_clean), "\n")
+cat("Missing 12m data:", sum(is.na(data_clean$PCV_12m)), "\n")
+cat("Missing 24m data:", sum(is.na(data_clean$PCV_24m)), "\n")
 
 # Define color palette
 pastel_palette <- c("#88CCEE", "#CC6677", "#117733", "#DDCC77", "#332288", "#EE7733", "#44AA99")
@@ -81,32 +110,59 @@ ve_scenarios <- list(
 )
 
 # =============================================================================
-# SUSCEPTIBILITY CALCULATIONS BY DEPRIVATION QUINTILE
+# SUSCEPTIBILITY CALCULATIONS WITH 1-YEAR LAG BY DEPRIVATION QUINTILE
 # =============================================================================
 
+cat("\n=== IMPLEMENTING SUSCEPTIBILITY CALCULATION ===\n")
+cat("Methodology: 1-year lag for primary coverage (supervisor feedback)\n")
+cat("- p0 = unvaccinated (from lagged 12m data)\n")
+cat("- p1 = primary only (lagged 12m - current 24m)\n")
+cat("- p2 = fully protected (current 24m)\n\n")
+
+# Create lagged dataset for susceptibility calculations
+create_lagged_susceptibility_data <- function(data) {
+  data %>%
+    arrange(ONS_Code, Year, Quarter) %>%
+    group_by(ONS_Code) %>%
+    mutate(
+      # Create 1-year lag for 12-month coverage
+      PCV_12m_lag = lag(PCV_12m, n = 4),  # 4 quarters = 1 year
+      Population_12m_lag = lag(Population_12m, n = 4)
+    ) %>%
+    ungroup() %>%
+    # Only include data where we have both lagged and current data
+    filter(!is.na(PCV_12m_lag) & !is.na(PCV_24m)) %>%
+    # Exclude 2013/2014 due to insufficient lag data
+    filter(Year != "2013/2014")
+}
+
+data_clean_lagged <- create_lagged_susceptibility_data(data_clean)
+
+cat("Observations after 1-year lag implementation:", nrow(data_clean_lagged), "\n")
+cat("Available years for susceptibility analysis:", 
+    paste(sort(unique(data_clean_lagged$Year)), collapse = ", "), "\n\n")
+
 quarterly_deprivation_all_scenarios <- map_dfr(ve_scenarios, function(scenario) {
-  data_clean %>%
+  data_clean_lagged %>%
     group_by(Year, Quarter, imd_quintile) %>%
     summarise(
-      # Calculate weighted average coverage
-      PCV_12m_pct = weighted.mean(PCV_12m, Population_12m, na.rm = TRUE),
+      # Calculate weighted average coverage using corrected methodology
+      PCV_12m_lag_pct = weighted.mean(PCV_12m_lag, Population_12m_lag, na.rm = TRUE),
       PCV_24m_pct = weighted.mean(PCV_24m, Population_24m, na.rm = TRUE),
-      Population = sum(Population_12m, na.rm = TRUE),
+      Population = sum(Population_12m_lag, na.rm = TRUE),  # Use lagged population for weighting
       .groups = "drop"
     ) %>%
     filter(!is.na(imd_quintile)) %>%
     arrange(Year, Quarter, imd_quintile) %>%
     mutate(
       # Convert to proportions 
-      PCV_12m_prop = pmax(0, pmin(1, PCV_12m_pct / 100)),
+      PCV_12m_lag_prop = pmax(0, pmin(1, PCV_12m_lag_pct / 100)),
       PCV_24m_prop = pmax(0, pmin(1, PCV_24m_pct / 100)),
-      # Ensure booster coverage doesn't exceed primary coverage
-      PCV_24m_prop = pmin(PCV_24m_prop, PCV_12m_prop),
       
-      # Calculate population proportions for cross-sectional snapshot
-      p0 = 1 - PCV_12m_prop,                    # Unvaccinated
-      p1 = pmax(0, PCV_12m_prop - PCV_24m_prop), # Primary doses only (ensure non-negative)
-      p2 = PCV_24m_prop,                        # Primary + booster
+      # Calculate population proportions using 1-year lag methodology
+      p0 = 1 - PCV_12m_lag_prop,                                    # Unvaccinated (from lagged 12m)
+      p1 = pmax(0, PCV_12m_lag_prop - PCV_24m_prop),               # Primary only (lagged 12m - current 24m)
+      p2 = PCV_24m_prop,                                           # Fully protected (current 24m)
       
       # Determine schedule based on year
       schedule_group = if_else(Year < "2020/2021", "2+1", "1+1"),
@@ -118,7 +174,7 @@ quarterly_deprivation_all_scenarios <- map_dfr(ve_scenarios, function(scenario) 
       ),
       VE_booster = scenario$ve_booster,
       
-      # Calculate susceptibility: proportion at risk of VT IPD
+      # CORRECTED: Calculate susceptibility using 1-year lag methodology
       Susceptibility_prop = p0 + p1 * (1 - VE_primary) + p2 * (1 - VE_booster),
       Susceptibility_n = Susceptibility_prop * Population,
       
@@ -132,29 +188,28 @@ quarterly_deprivation_all_scenarios <- map_dfr(ve_scenarios, function(scenario) 
 })
 
 # =============================================================================
-# NATIONAL LEVEL SUSCEPTIBILITY CALCULATIONS
+# NATIONAL LEVEL SUSCEPTIBILITY CALCULATIONS WITH 1-YEAR LAG
 # =============================================================================
 
 quarterly_schedule_all_scenarios <- map_dfr(ve_scenarios, function(scenario) {
-  data_clean %>%
+  data_clean_lagged %>%
     group_by(Year, Quarter) %>%
     summarise(
-      PCV_12m_pct = weighted.mean(PCV_12m, Population_12m, na.rm = TRUE),
+      PCV_12m_lag_pct = weighted.mean(PCV_12m_lag, Population_12m_lag, na.rm = TRUE),
       PCV_24m_pct = weighted.mean(PCV_24m, Population_24m, na.rm = TRUE),
-      Population = sum(Population_12m, na.rm = TRUE),
+      Population = sum(Population_12m_lag, na.rm = TRUE),
       .groups = "drop"
     ) %>%
     arrange(Year, Quarter) %>%
     mutate(
       # Convert to proportions
-      PCV_12m_prop = pmax(0, pmin(1, PCV_12m_pct / 100)),
+      PCV_12m_lag_prop = pmax(0, pmin(1, PCV_12m_lag_pct / 100)),
       PCV_24m_prop = pmax(0, pmin(1, PCV_24m_pct / 100)),
-      PCV_24m_prop = pmin(PCV_24m_prop, PCV_12m_prop),
       
-      # Population proportions
-      p0 = 1 - PCV_12m_prop,
-      p1 = pmax(0, PCV_12m_prop - PCV_24m_prop), # Ensure non-negative
-      p2 = PCV_24m_prop,
+      # CORRECTED: Population proportions using 1-year lag
+      p0 = 1 - PCV_12m_lag_prop,                         # Unvaccinated 
+      p1 = pmax(0, PCV_12m_lag_prop - PCV_24m_prop),     # Primary only 
+      p2 = PCV_24m_prop,                                 # Fully protected 
       
       # Schedule determination
       schedule_group = if_else(Year < "2020/2021", "2+1", "1+1"),
@@ -166,7 +221,7 @@ quarterly_schedule_all_scenarios <- map_dfr(ve_scenarios, function(scenario) {
       ),
       VE_booster = scenario$ve_booster,
       
-      # Susceptibility calculation
+      # CORRECTED: Susceptibility calculation using 1-year lag
       Susceptibility_prop = p0 + p1 * (1 - VE_primary) + p2 * (1 - VE_booster),
       Susceptibility_n = Susceptibility_prop * Population,
       
@@ -180,32 +235,29 @@ quarterly_schedule_all_scenarios <- map_dfr(ve_scenarios, function(scenario) {
 })
 
 # =============================================================================
-# GEOGRAPHIC DATA PREPARATION
+# GEOGRAPHIC DATA PREPARATION WITH CORRECTED METHODOLOGY
 # =============================================================================
 
-# Load England map 
-england_map <- st_read(here("data", "Shapefile", "Local_Authority_(Upper_Tier)_IMD_2019_(WGS84).shp"))
 
-# Calculate geographic susceptibility for all scenarios
+# Calculate geographic susceptibility using corrected methodology
 la_susceptibility_all_scenarios <- map_dfr(ve_scenarios, function(scenario) {
-  data_clean %>%
+  data_clean_lagged %>%
     group_by(Year, ONS_Code, utla_name) %>%
     summarise(
-      PCV_12m_pct = weighted.mean(PCV_12m, Population_12m, na.rm = TRUE),
+      PCV_12m_lag_pct = weighted.mean(PCV_12m_lag, Population_12m_lag, na.rm = TRUE),
       PCV_24m_pct = weighted.mean(PCV_24m, Population_24m, na.rm = TRUE),
-      Population = sum(Population_12m, na.rm = TRUE),
+      Population = sum(Population_12m_lag, na.rm = TRUE),
       .groups = "drop"
     ) %>%
     mutate(
       # Convert to proportions
-      PCV_12m_prop = pmax(0, pmin(1, PCV_12m_pct / 100)),
+      PCV_12m_lag_prop = pmax(0, pmin(1, PCV_12m_lag_pct / 100)),
       PCV_24m_prop = pmax(0, pmin(1, PCV_24m_pct / 100)),
-      PCV_24m_prop = pmin(PCV_24m_prop, PCV_12m_prop),
       
-      # Population proportions
-      p0 = 1 - PCV_12m_prop,
-      p1 = pmax(0, PCV_12m_prop - PCV_24m_prop), # Ensure non-negative
-      p2 = PCV_24m_prop,
+      # CORRECTED: Population proportions using 1-year lag
+      p0 = 1 - PCV_12m_lag_prop,                         # Unvaccinated (lagged)
+      p1 = pmax(0, PCV_12m_lag_prop - PCV_24m_prop),     # Primary only (lagged - current)
+      p2 = PCV_24m_prop,                                 # Fully protected (current)
       
       # Schedule determination
       schedule_group = if_else(Year < "2020/2021", "2+1", "1+1"),
@@ -217,7 +269,7 @@ la_susceptibility_all_scenarios <- map_dfr(ve_scenarios, function(scenario) {
       ),
       VE_booster = scenario$ve_booster,
       
-      # Susceptibility calculation
+      # CORRECTED: Susceptibility calculation using 1-year lag
       Susceptibility = p0 + p1 * (1 - VE_primary) + p2 * (1 - VE_booster),
       
       # Metadata
@@ -275,8 +327,8 @@ main_scenarios <- quarterly_deprivation_all_scenarios %>%
     )
   )
 
-# Create susceptibility trend plot
-figure4_simplified <- ggplot(main_scenarios, aes(x = time_order, y = Susceptibility_prop)) +
+# Create corrected susceptibility trend plot
+figure4_corrected <- ggplot(main_scenarios, aes(x = time_order, y = Susceptibility_prop)) +
   geom_line(
     aes(color = as.factor(imd_quintile)),
     linewidth = 1.8
@@ -299,9 +351,10 @@ figure4_simplified <- ggplot(main_scenarios, aes(x = time_order, y = Susceptibil
   ) +
   scale_y_continuous(labels = scales::percent_format(accuracy = 0.1)) +
   labs(
+    #title = "Susceptibility Trends with 1-Year Lag Methodology",
     x = "Year & Quarter",
     y = "Proportion Susceptible",
-    caption = "Vertical line indicates schedule change (Jan 2020) | Central VE estimates only"
+    caption = "Vertical line indicates schedule change (Jan 2020)"
   ) +
   theme_minimal(base_size = 16) +
   theme(
@@ -316,10 +369,11 @@ figure4_simplified <- ggplot(main_scenarios, aes(x = time_order, y = Susceptibil
     legend.key.width = unit(1.5, "cm"),
     legend.key.height = unit(0.8, "cm"),
     panel.grid.minor = element_blank(),
-    plot.caption = element_text(size = 12, color = "grey60")
+    plot.caption = element_text(size = 12, color = "grey60"),
+    plot.title = element_text(hjust = 0.5, size = 18, face = "bold")
   )
 
-print(figure4_simplified)
+print(figure4_corrected)
 
 # =============================================================================
 # FIGURE 5: GEOGRAPHIC SUSCEPTIBILITY MAPS
@@ -347,20 +401,20 @@ map_data_main <- england_map %>%
   ) %>%
   filter(!is.na(Year) & !is.na(Susceptibility))
 
-# Select representative years for visualization
+# Select representative years for visualization (adjusted for lag)
 selected_years <- c("2019/2020", "2020/2021", "2021/2022")
 map_data_subset <- map_data_main %>%
   filter(Year %in% selected_years)
 
-# Create geographic susceptibility map
-figure5_main <- ggplot(map_data_subset) +
+# Create corrected geographic susceptibility map
+figure5_corrected <- ggplot(map_data_subset) +
   geom_sf(aes(fill = Susceptibility), color = "white", linewidth = 0.05) +
   scale_fill_viridis_c(
     name = "Proportion Susceptible",  
     option = "plasma",
     direction = 1,
-    limits = c(0.20, 0.35),
-    breaks = seq(0.20, 0.35, by = 0.05),
+    limits = c(0.20, 0.40),
+    breaks = seq(0.20, 0.40, by = 0.05),
     labels = scales::percent_format(accuracy = 1),
     guide = guide_colorbar(
       title.position = "top",        
@@ -376,8 +430,9 @@ figure5_main <- ggplot(map_data_subset) +
   ) +
   facet_wrap(~ Year_Schedule, ncol = 3) +
   labs(
+    #title = " Geographic Susceptibility",
     #subtitle = "Baseline assumption: 1+1 single dose VE = 60.6%",
-    #caption = "Central VE estimates | Cross-sectional analysis"
+    #caption = "Central VE estimates"
   ) +
   theme_void(base_size = 10) +
   theme(
@@ -396,10 +451,11 @@ figure5_main <- ggplot(map_data_subset) +
     plot.subtitle = element_text(size = 10, hjust = 0.5, color = "gray40"),
     plot.caption = element_text(hjust = 0.5, size = 8, color = "grey60"),
     plot.margin = margin(10, 10, 15, 10),   
-    panel.spacing = unit(0.3, "lines")
+    panel.spacing = unit(0.3, "lines"),
+    plot.title = element_text(hjust = 0.5, size = 12, face = "bold")
   )
 
-print(figure5_main)
+print(figure5_corrected)
 
 # Create alternate assumption map for supplementary materials
 map_data_alternate <- england_map %>%
@@ -418,14 +474,14 @@ map_data_alternate <- england_map %>%
   ) %>%
   filter(Year %in% selected_years)
 
-figure5_alternate <- ggplot(map_data_alternate) +
+figure5_alternate_corrected <- ggplot(map_data_alternate) +
   geom_sf(aes(fill = Susceptibility), color = "white", linewidth = 0.05) +
   scale_fill_viridis_c(
     name = "Proportion Susceptible",  
     option = "plasma",
     direction = 1,
-    limits = c(0.20, 0.35),
-    breaks = seq(0.20, 0.35, by = 0.05),
+    limits = c(0.20, 0.40),
+    breaks = seq(0.20, 0.40, by = 0.05),
     labels = scales::percent_format(accuracy = 1),
     guide = guide_colorbar(
       title.position = "top",        
@@ -441,8 +497,9 @@ figure5_alternate <- ggplot(map_data_alternate) +
   ) +
   facet_wrap(~ Year_Schedule, ncol = 3) +
   labs(
-    #subtitle = "Alternate assumption: 1+1 single dose VE = 76.1%",
-    #caption = "Central VE estimates | Cross-sectional analysis"
+    # title = "CORRECTED Geographic Susceptibility - Alternate Assumption",
+    # subtitle = "Alternate assumption: 1+1 single dose VE = 76.1%",
+    # caption = "Central VE estimates | CORRECTED: Uses 1-year lag for primary coverage"
   ) +
   theme_void(base_size = 10) +
   theme(
@@ -461,10 +518,11 @@ figure5_alternate <- ggplot(map_data_alternate) +
     plot.subtitle = element_text(size = 10, hjust = 0.5, color = "gray40"),
     plot.caption = element_text(hjust = 0.5, size = 8, color = "grey60"),
     plot.margin = margin(10, 10, 15, 10),  
-    panel.spacing = unit(0.3, "lines")
+    panel.spacing = unit(0.3, "lines"),
+    plot.title = element_text(hjust = 0.5, size = 12, face = "bold")
   )
 
-print(figure5_alternate)
+print(figure5_alternate_corrected)
 
 # =============================================================================
 # GENERATE UTLA LISTS BY QUINTILE
@@ -500,11 +558,11 @@ london_utlas_e09 <- data_clean %>%
   unique() %>%
   sort()
 
-# Create dataset excluding London
+# Create dataset excluding London 
 data_no_london <- data_clean %>%
   filter(!str_starts(ONS_Code, "E09"))
 
-# Calculate coverage trends with and without London
+# Calculate coverage trends with and without London (using original data for comparison)
 pcv_with_london_12m <- data_clean %>%
   group_by(Year, Quarter, imd_quintile) %>%
   summarise(mean_PCV_12m = mean(PCV_12m, na.rm = TRUE), .groups = "drop") %>%
@@ -568,6 +626,7 @@ plot_12m_comparison <- ggplot(pcv_comparison_12m,
   ) +
   scale_y_continuous(limits = c(80, 100), breaks = seq(80, 100, 5)) +
   labs(
+    # title = "London Comparison Analysis",
     x = "Time (Year - Quarter)",
     y = "Mean PCV 12m Uptake (%)"
   ) +
@@ -576,7 +635,8 @@ plot_12m_comparison <- ggplot(pcv_comparison_12m,
     axis.text.x = element_text(angle = 45, hjust = 1, size = 7),
     legend.position = "top",
     strip.background = element_rect(fill = "grey95"),
-    strip.text = element_text(face = "bold", size = 11)
+    strip.text = element_text(face = "bold", size = 11),
+    plot.title = element_text(hjust = 0.5, size = 14, face = "bold")
   )
 
 print(plot_12m_comparison)
@@ -599,6 +659,7 @@ plot_24m_comparison <- ggplot(pcv_comparison_24m,
   ) +
   scale_y_continuous(limits = c(80, 100), breaks = seq(80, 100, 5)) +
   labs(
+    # title = "London Comparison Analysis - 24m Coverage",
     x = "Time (Year - Quarter)",
     y = "Mean PCV 24m Uptake (%)"
   ) +
@@ -607,7 +668,8 @@ plot_24m_comparison <- ggplot(pcv_comparison_24m,
     axis.text.x = element_text(angle = 45, hjust = 1, size = 7),
     legend.position = "top",
     strip.background = element_rect(fill = "grey95"),
-    strip.text = element_text(face = "bold", size = 11)
+    strip.text = element_text(face = "bold", size = 11),
+    plot.title = element_text(hjust = 0.5, size = 14, face = "bold")
   )
 
 print(plot_24m_comparison)
@@ -616,37 +678,43 @@ print(plot_24m_comparison)
 # VALIDATION AND SUMMARY STATISTICS
 # =============================================================================
 
-# Calculate booster gaps by schedule period
-corrected_gaps <- data_clean %>%
+# Calculate booster gaps using 1-year lag
+cat("\n=== CORRECTED BOOSTER GAP ANALYSIS WITH 1-YEAR LAG ===\n")
+
+corrected_gaps_lagged <- data_clean_lagged %>%
   mutate(
     schedule_period = if_else(Year < "2020/2021", "2+1 (pre-2020)", "1+1 (post-2020)"),
-    booster_gap = PCV_12m - PCV_24m
+    booster_gap_corrected = PCV_12m_lag - PCV_24m  # lagged 12m - current 24m
   ) %>%
   group_by(schedule_period) %>%
   summarise(
-    Mean_Gap = weighted.mean(booster_gap, Population_12m, na.rm = TRUE),
-    Median_Gap = median(booster_gap, na.rm = TRUE),
-    SD_Gap = sd(booster_gap, na.rm = TRUE),
+    Mean_Gap = weighted.mean(booster_gap_corrected, Population_12m_lag, na.rm = TRUE),
+    Median_Gap = median(booster_gap_corrected, na.rm = TRUE),
+    SD_Gap = sd(booster_gap_corrected, na.rm = TRUE),
     n_observations = n(),
     .groups = "drop"
   ) %>%
   arrange(schedule_period)
 
-print("Booster Gap Analysis:")
-print(corrected_gaps)
+cat("Booster Gap Analysis:\n")
+print(corrected_gaps_lagged)
 
-# Calculate the increase in booster gaps
-gap_2plus1 <- corrected_gaps$Mean_Gap[corrected_gaps$schedule_period == "2+1 (pre-2020)"]
-gap_1plus1 <- corrected_gaps$Mean_Gap[corrected_gaps$schedule_period == "1+1 (post-2020)"]
-gap_increase <- gap_1plus1 - gap_2plus1
-relative_increase <- round((gap_increase / gap_2plus1) * 100, 0)
+# Calculate the change in booster gaps
+gap_2plus1_corrected <- corrected_gaps_lagged$Mean_Gap[corrected_gaps_lagged$schedule_period == "2+1 (pre-2020)"]
+gap_1plus1_corrected <- corrected_gaps_lagged$Mean_Gap[corrected_gaps_lagged$schedule_period == "1+1 (post-2020)"]
 
-print(paste("Booster gaps increased from", round(gap_2plus1, 2), 
-            "to", round(gap_1plus1, 2), "=", round(gap_increase, 2), 
-            "percentage points (", relative_increase, "% relative increase)"))
+if(length(gap_2plus1_corrected) > 0 && length(gap_1plus1_corrected) > 0) {
+  gap_increase_corrected <- gap_1plus1_corrected - gap_2plus1_corrected
+  relative_increase_corrected <- round((gap_increase_corrected / gap_2plus1_corrected) * 100, 0)
+  
+  cat("\nFINDINGS:\n")
+  cat("Booster gaps changed from", round(gap_2plus1_corrected, 2), 
+      "to", round(gap_1plus1_corrected, 2), "=", round(gap_increase_corrected, 2), 
+      "percentage points (", relative_increase_corrected, "% relative change)\n")
+}
 
 # Overall summary by scenario and schedule
-scenario_summary <- quarterly_schedule_all_scenarios %>%
+scenario_summary_corrected <- quarterly_schedule_all_scenarios %>%
   group_by(scenario_name, schedule_group) %>%
   summarise(
     Mean_Susceptibility = mean(Susceptibility_prop, na.rm = TRUE),
@@ -660,8 +728,8 @@ scenario_summary <- quarterly_schedule_all_scenarios %>%
     SD_Susceptibility_pct = round(SD_Susceptibility * 100, 2)
   )
 
-print("Summary of Susceptibility by Scenario and Schedule:")
-print(scenario_summary)
+cat("\n Summary of Susceptibility by Scenario and Schedule:\n")
+print(scenario_summary_corrected)
 
 # =============================================================================
 # SINGLE LOCAL AUTHORITY VALIDATION (BIRMINGHAM EXAMPLE)
@@ -670,8 +738,11 @@ print(scenario_summary)
 # Manual calculation to verify susceptibility model
 test_utla <- "Birmingham"
 
-# Get Birmingham's coverage data for representative years
-birmingham_data <- data_clean %>%
+cat("\n=== LOCAL AUTHORITY VALIDATION ===\n")
+cat("Testing corrected methodology for:", test_utla, "\n")
+
+# Get Birmingham's corrected coverage data
+birmingham_data_corrected <- data_clean_lagged %>%
   filter(utla_name == test_utla) %>%
   filter(Year %in% c("2018/2019", "2022/2023")) %>%
   mutate(
@@ -682,58 +753,60 @@ birmingham_data <- data_clean %>%
   ) %>%
   group_by(schedule_period, Year) %>%
   summarise(
-    PCV_12m_avg = weighted.mean(PCV_12m, Population_12m, na.rm = TRUE),
+    PCV_12m_lag_avg = weighted.mean(PCV_12m_lag, Population_12m_lag, na.rm = TRUE),
     PCV_24m_avg = weighted.mean(PCV_24m, Population_24m, na.rm = TRUE),
     n_quarters = n(),
     .groups = "drop"
   )
 
-print(paste("Coverage data for", test_utla, ":"))
-print(birmingham_data)
+cat(" coverage data for", test_utla, ":\n")
+print(birmingham_data_corrected)
 
-# Manual calculation for 2+1 period
-bham_2plus1_12m <- birmingham_data$PCV_12m_avg[birmingham_data$schedule_period == "2+1 (2018/19)"]
-bham_2plus1_24m <- birmingham_data$PCV_24m_avg[birmingham_data$schedule_period == "2+1 (2018/19)"]
+# Manual calculation for 2+1 period using corrected methodology
+bham_2plus1_12m_lag <- birmingham_data_corrected$PCV_12m_lag_avg[birmingham_data_corrected$schedule_period == "2+1 (2018/19)"]
+bham_2plus1_24m <- birmingham_data_corrected$PCV_24m_avg[birmingham_data_corrected$schedule_period == "2+1 (2018/19)"]
 
-if(length(bham_2plus1_12m) > 0) {
+if(length(bham_2plus1_12m_lag) > 0) {
   # Convert to proportions
-  p0_2plus1 <- (100 - bham_2plus1_12m) / 100
-  p1_2plus1 <- pmax(0, (bham_2plus1_12m - bham_2plus1_24m) / 100)  # Ensure non-negative
-  p2_2plus1 <- bham_2plus1_24m / 100
+  p0_2plus1_corrected <- (100 - bham_2plus1_12m_lag) / 100                     # Unvaccinated 
+  p1_2plus1_corrected <- pmax(0, (bham_2plus1_12m_lag - bham_2plus1_24m) / 100) # Primary only
+  p2_2plus1_corrected <- bham_2plus1_24m / 100                                 # Fully protected 
   
   # Calculate susceptibility using 2+1 VE values
   VE_2plus1_primary <- 0.761
   VE_booster <- 0.782
-  susceptibility_2plus1 <- p0_2plus1 + p1_2plus1 * (1 - VE_2plus1_primary) + p2_2plus1 * (1 - VE_booster)
+  susceptibility_2plus1_corrected <- p0_2plus1_corrected + p1_2plus1_corrected * (1 - VE_2plus1_primary) + p2_2plus1_corrected * (1 - VE_booster)
   
-  cat("\n2+1 schedule susceptibility for", test_utla, ":", round(susceptibility_2plus1*100, 1), "%\n")
+  cat("\nCORRECTED 2+1 schedule susceptibility for", test_utla, ":", round(susceptibility_2plus1_corrected*100, 1), "%\n")
 }
 
-# Manual calculation for 1+1 period
-bham_1plus1_12m <- birmingham_data$PCV_12m_avg[birmingham_data$schedule_period == "1+1 (2022/23)"]
-bham_1plus1_24m <- birmingham_data$PCV_24m_avg[birmingham_data$schedule_period == "1+1 (2022/23)"]
+# Manual calculation for 1+1 period 
+bham_1plus1_12m_lag <- birmingham_data_corrected$PCV_12m_lag_avg[birmingham_data_corrected$schedule_period == "1+1 (2022/23)"]
+bham_1plus1_24m <- birmingham_data_corrected$PCV_24m_avg[birmingham_data_corrected$schedule_period == "1+1 (2022/23)"]
 
-if(length(bham_1plus1_12m) > 0) {
+if(length(bham_1plus1_12m_lag) > 0) {
   # Convert to proportions
-  p0_1plus1 <- (100 - bham_1plus1_12m) / 100
-  p1_1plus1 <- pmax(0, (bham_1plus1_12m - bham_1plus1_24m) / 100)  # Ensure non-negative
-  p2_1plus1 <- bham_1plus1_24m / 100
+  p0_1plus1_corrected <- (100 - bham_1plus1_12m_lag) / 100                     # Unvaccinated 
+  p1_1plus1_corrected <- pmax(0, (bham_1plus1_12m_lag - bham_1plus1_24m) / 100) # Primary only 
+  p2_1plus1_corrected <- bham_1plus1_24m / 100                                 # Fully protected 
   
   # Calculate susceptibility using both 1+1 VE assumptions
   VE_1plus1_baseline <- 0.606
   VE_1plus1_alternate <- 0.761
   
   # Baseline assumption
-  susceptibility_1plus1_baseline <- p0_1plus1 + p1_1plus1 * (1 - VE_1plus1_baseline) + p2_1plus1 * (1 - VE_booster)
+  susceptibility_1plus1_baseline_corrected <- p0_1plus1_corrected + p1_1plus1_corrected * (1 - VE_1plus1_baseline) + p2_1plus1_corrected * (1 - VE_booster)
   
   # Alternate assumption
-  susceptibility_1plus1_alternate <- p0_1plus1 + p1_1plus1 * (1 - VE_1plus1_alternate) + p2_1plus1 * (1 - VE_booster)
+  susceptibility_1plus1_alternate_corrected <- p0_1plus1_corrected + p1_1plus1_corrected * (1 - VE_1plus1_alternate) + p2_1plus1_corrected * (1 - VE_booster)
   
-  cat("1+1 baseline assumption for", test_utla, ":", round(susceptibility_1plus1_baseline*100, 1), "%\n")
-  cat("1+1 alternate assumption for", test_utla, ":", round(susceptibility_1plus1_alternate*100, 1), "%\n")
+  cat(" 1+1 baseline assumption for", test_utla, ":", round(susceptibility_1plus1_baseline_corrected*100, 1), "%\n")
+  cat(" 1+1 alternate assumption for", test_utla, ":", round(susceptibility_1plus1_alternate_corrected*100, 1), "%\n")
   
-  if(exists("susceptibility_2plus1")) {
-    cat("Difference from 2+1 (baseline):", sprintf("%+.1f", (susceptibility_1plus1_baseline - susceptibility_2plus1)*100), "pp\n")
-    cat("Difference from 2+1 (alternate):", sprintf("%+.1f", (susceptibility_1plus1_alternate - susceptibility_2plus1)*100), "pp\n")
+  if(exists("susceptibility_2plus1_corrected")) {
+    cat(" difference from 2+1 (baseline):", sprintf("%+.1f", (susceptibility_1plus1_baseline_corrected - susceptibility_2plus1_corrected)*100), "pp\n")
+    cat(" difference from 2+1 (alternate):", sprintf("%+.1f", (susceptibility_1plus1_alternate_corrected - susceptibility_2plus1_corrected)*100), "pp\n")
   }
 }
+
+

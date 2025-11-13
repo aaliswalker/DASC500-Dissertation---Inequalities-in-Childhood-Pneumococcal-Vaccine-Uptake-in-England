@@ -4,20 +4,19 @@
 # 
 # DESCRIPTION: 
 # - Processes and cleans IMD data from UTLA_summaries.xlsx
-# - Combines all cleaned quarterly COVER files into master dataset
-# - Handles missing data through imputation strategies
+# - Uses boundary-change corrected COVER data (NO IMPUTATION)
+# - Ensures Northamptonshire and BCP are properly included
 # - Merges COVER vaccine data with IMD quintile assignments
 # - Creates choropleth maps showing IMD quintile distributions across England
 #
-# MAIN SECTIONS:
-# - Package loading and setup
-# - IMD data processing and quintile assignment
-# - COVER data consolidation and cleaning
-# - Data merging and validation
-# - Geographic visualization of IMD quintiles
+# MAJOR REVISIONS:
+# REMOVED ALL IMPUTATION - missing values preserved as NA
+# Uses boundary-change corrected data from script 01
+# Explicit Northamptonshire IMD verification
+# Transparent missing data reporting
 #
-# INPUTS: Cleaned COVER quarterly files, UTLA_summaries.xlsx, shapefile data
-# OUTPUTS: COVER_All_Years_MERGED_WITH_IMD.csv, IMD quintile maps
+# INPUTS: Boundary-corrected COVER files, UTLA_summaries.xlsx, shapefile data
+# OUTPUTS: COVER_All_Years_MERGED_WITH_IMD_NO_IMPUTATION.csv, IMD quintile maps
 #===============================================================================
 
 #### 🫧 Package Loading and Setup ####
@@ -33,10 +32,15 @@ library(ggrepel)
 library(sf)         
 library(viridis) 
 
-# Define directory paths
-imd_data_dir <- here("data")  
-cleaned_data_dir <- here("cleaned_Data") 
+imd_data_dir <- here("data")
+cleaned_data_dir <- here("data/cleaned") 
 output_dir <- here("output")
+
+# Create output directory if it doesn't exist
+dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)
+
+# Load IMD data from data folder
+imd_file_path <- file.path(imd_data_dir, "UTLA_summaries.xlsx")
 
 # Create output directory if it doesn't exist
 dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)
@@ -45,6 +49,7 @@ dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)
 
 # Load IMD data from data folder
 imd_file_path <- file.path(imd_data_dir, "UTLA_summaries.xlsx")
+
 
 # Check if file exists
 if (!file.exists(imd_file_path)) {
@@ -76,43 +81,83 @@ imd_retained_utla_subset = imd_subset %>%
     !utla_name %in% c("City of London", "Isles of Scilly")
   )
 
+
 # Create IMD quintiles
 imd_quintiles_assigned <- imd_retained_utla_subset %>%
   mutate(imd_quintile = ntile(imd_score, 5))
+
+# Report quintile assignments
+cat("\n=== IMD QUINTILE ASSIGNMENTS ===\n")
+quintile_summary <- imd_quintiles_assigned %>%
+  count(imd_quintile, name = "n_utlas")
+print(quintile_summary)
 
 # Save cleaned IMD data to output directory
 write.csv(imd_quintiles_assigned, file.path(output_dir, "cleaned_imd_data.csv"), row.names = FALSE)
 cat("IMD data processed and saved\n")
 
-#### 🫧 COVER Data Consolidation and Cleaning ####
+#### 🫧 COVER Data Consolidation - BOUNDARY CORRECTED, NO IMPUTATION ####
 
-# Find COVER files (without changing working directory)
-files <- list.files(cleaned_data_dir, pattern = "COVER_\\d{4}.*_Cleaned\\.csv", full.names = TRUE)
+# Use the final boundary-corrected comprehensive file if available
+final_boundary_file <- file.path(cleaned_data_dir, "COVER_All_Years_NoImputation.csv")
 
-if (length(files) == 0) {
-  stop("No COVER files found in: ", cleaned_data_dir)
+if (file.exists(final_boundary_file)) {
+  cat("Using boundary-corrected comprehensive file from script 01\n")
+  cover_all <- read_csv(final_boundary_file, col_types = cols(.default = "c"), show_col_types = FALSE)
+  cat("Loaded comprehensive boundary-corrected data\n")
+  
+} else {
+  cat("Using individual cleaned files with boundary corrections\n")
+  
+  # Find boundary-corrected COVER files 
+  files <- list.files(cleaned_data_dir, pattern = "COVER_\\d{4}_Cleaned\\.csv", full.names = TRUE)
+  
+  if (length(files) == 0) {
+    stop("No boundary-corrected COVER files found in: ", cleaned_data_dir)
+  }
+  
+  cat("Found", length(files), "boundary-corrected COVER files to process\n")
+  print(basename(files))
+  
+  # Read and combine all boundary-corrected COVER files
+  cover_all <- bind_rows(lapply(files, function(file) {
+    cat("Processing:", basename(file), "\n")
+    # Read everything as character to avoid type mismatch
+    df <- read_csv(file, col_types = cols(.default = "c"), show_col_types = FALSE)
+    return(df)
+  }))
 }
 
-cat("Found", length(files), "COVER files to process\n")
+# Check data dimensions
+cat("Combined boundary-corrected COVER data dimensions:", nrow(cover_all), "x", ncol(cover_all), "\n")
 
-# Read and combine all COVER files
-cover_all <- bind_rows(lapply(files, function(file) {
-  cat("Processing:", basename(file), "\n")
-  # Read everything as character to avoid type mismatch
-  df <- read_csv(file, col_types = cols(.default = "c"), show_col_types = FALSE)
-  return(df)
-}))
+# VERIFY BOUNDARY CHANGES ARE PRESERVED
+boundary_check <- cover_all %>%
+  filter(ONS_Code %in% c("E06000058", "E10000021")) %>%  # BCP and Northamptonshire
+  group_by(ONS_Code, UTLA_Name) %>%
+  summarise(
+    Years = n_distinct(Year),
+    Quarters = n_distinct(Quarter),
+    Has_Data = any(!is.na(PCV_12m) | !is.na(PCV_24m)),
+    .groups = "drop"
+  )
 
-# Check data
-cat("Combined COVER data dimensions:", nrow(cover_all), "x", ncol(cover_all), "\n")
+cat("\n=== BOUNDARY CHANGE VERIFICATION ===\n")
+print(boundary_check)
 
-# Convert all entries starting with 'N' to NA
-cover_all <- cover_all %>%
+if(nrow(boundary_check) < 2) {
+  cat("WARNING: Expected BCP and/or Northamptonshire missing from data\n")
+}
+
+over_all <- cover_all %>%
   mutate(across(
     everything(),
-    ~ ifelse(grepl("^N", .x), NA, .x)
+    ~ case_when(
+      .x %in% c("N.A.", "N/A", "NA", "N.A", "n.a.", "n/a") ~ NA_character_,
+      grepl("^\\[", .x) ~ NA_character_,  # Convert [codes] to NA
+      TRUE ~ .x
+    )
   ))
-
 # Replace anything starting with '[' to NA
 cover_all <- cover_all %>%
   mutate(across(
@@ -133,74 +178,87 @@ cover_all <- cover_all %>%
   )
 
 # Check data structure
-cat("Data structure summary:\n")
+cat("\n=== DATA STRUCTURE SUMMARY ===\n")
 cat("Rows:", nrow(cover_all), "\n")
 cat("Columns:", ncol(cover_all), "\n")
+cat("Unique UTLAs:", n_distinct(cover_all$ONS_Code), "\n")
+cat("Year range:", min(cover_all$Year), "to", max(cover_all$Year), "\n")
 
-# Check missing values 
+#### 🫧 MISSING DATA TRANSPARENCY - NO IMPUTATION ####
+
+# REPORT MISSING DATA PATTERNS BUT DO NOT IMPUTE
 total_missing <- sum(is.na(cover_all))
 col_missing <- colSums(is.na(cover_all))
 pct_missing <- round(colMeans(is.na(cover_all)) * 100, 2)
 
-cat("Total missing values:", total_missing, "\n")
+cat("\n=== MISSING DATA ANALYSIS (NO IMPUTATION PERFORMED) ===\n")
+cat("Total missing values:", format(total_missing, big.mark = ","), "\n")
 cat("Missing values by column:\n")
 print(pct_missing[pct_missing > 0])
 
-#### 🫧 Data Quality and Imputation ####
-
-# Save dataset before imputing
-write.csv(cover_all, file.path(output_dir, "COVER_All_Years_UNIMPUTED.csv"), row.names = FALSE)
-cat("Unimputed data saved\n")
-
-# Impute missing values by vaccine schedule group
-cover_all_imputed <- cover_all %>%
-  group_by(Vaccine_Schedule) %>%
-  mutate(
-    PCV_12m = ifelse(is.na(PCV_12m), mean(PCV_12m, na.rm = TRUE), PCV_12m),
-    PCV_24m = ifelse(is.na(PCV_24m), mean(PCV_24m, na.rm = TRUE), PCV_24m),
-    Population_12m = ifelse(is.na(Population_12m), median(Population_12m, na.rm = TRUE), Population_12m),
-    Population_24m = ifelse(is.na(Population_24m), median(Population_24m, na.rm = TRUE), Population_24m)
+# Report missing patterns by year
+missing_by_year <- cover_all %>%
+  group_by(Year) %>%
+  summarise(
+    Total_Records = n(),
+    Missing_PCV12 = sum(is.na(PCV_12m)),
+    Missing_PCV24 = sum(is.na(PCV_24m)),
+    Missing_Pop12 = sum(is.na(Population_12m)),
+    Missing_Pop24 = sum(is.na(Population_24m)),
+    .groups = "drop"
   ) %>%
-  ungroup()
-# Note: mean for PCV since it's % uptake; median for population since it's more likely to be skewed
+  mutate(
+    Pct_Missing_PCV12 = round(Missing_PCV12 / Total_Records * 100, 1),
+    Pct_Missing_PCV24 = round(Missing_PCV24 / Total_Records * 100, 1)
+  )
 
-# Save imputed dataset
-write.csv(cover_all_imputed, file.path(output_dir, "COVER_All_Years_IMPUTED.csv"), row.names = FALSE)
-cat("Imputed data saved\n")
+cat("\nMissing data patterns by year:\n")
+print(missing_by_year)
+
+# SAVE NON-IMPUTED DATASET 
+write.csv(cover_all, file.path(output_dir, "COVER_All_Years_NO_IMPUTATION.csv"), row.names = FALSE)
+cat("Non-imputed boundary-corrected data saved\n")
 
 #### 🫧 Data Merging and Validation ####
 
-# Load saved data
-cover <- read.csv(file.path(output_dir, "COVER_All_Years_IMPUTED.csv"))
-imd <- read.csv(file.path(output_dir, "cleaned_imd_data.csv"))
+# Use non-imputed data directly - NO IMPUTATION STEP
+cover <- cover_all
 
 # Check data types and content
+cat("\n=== PRE-MERGE VALIDATION ===\n")
 cat("Sample ONS codes from COVER:", head(cover$ONS_Code), "\n")
-cat("Sample UTLA codes from IMD:", head(imd$utla_code), "\n")
+cat("Sample UTLA codes from IMD:", head(imd_quintiles_assigned$utla_code), "\n")
 
 # Trim white space
 cover$ONS_Code <- trimws(cover$ONS_Code)
-imd$utla_code <- trimws(imd$utla_code)
+imd_quintiles_assigned$utla_code <- trimws(imd_quintiles_assigned$utla_code)
 
 # Check for mismatches
-cover_ons_not_in_imd <- setdiff(cover$ONS_Code, imd$utla_code)
-imd_not_in_cover <- setdiff(imd$utla_code, cover$ONS_Code) # City of London and Isle of Scilly
+cover_ons_not_in_imd <- setdiff(cover$ONS_Code, imd_quintiles_assigned$utla_code)
+imd_not_in_cover <- setdiff(imd_quintiles_assigned$utla_code, cover$ONS_Code)
 
-cat("=== UNMATCHED RECORDS ===\n")
+cat("\n=== UNMATCHED RECORDS ANALYSIS ===\n")
 cat("COVER codes not in IMD:", length(cover_ons_not_in_imd), "\n")
+if(length(cover_ons_not_in_imd) > 0) {
+  cat("Missing from IMD:\n")
+  print(cover_ons_not_in_imd)
+}
+
 cat("IMD codes not in COVER:", length(imd_not_in_cover), "\n")
 if (length(imd_not_in_cover) > 0) {
-  cat("Missing from COVER:\n")
-  print(imd_not_in_cover)
+  cat("Missing from COVER (expected: City of London, Isles of Scilly):\n")
+  missing_utla_details <- imd_quintiles_assigned %>%
+    filter(utla_code %in% imd_not_in_cover)
+  print(missing_utla_details)
 }
 
 # Count records before filtering
 records_before <- nrow(cover)
 cat("\nRecords BEFORE filtering:", format(records_before, big.mark = ","), "\n")
 
-# Drop rows that don't match IMD data
+# ONLY INCLUDE UTLAs WITH IMD ASSIGNMENTS
 cover <- cover %>%
-  filter(ONS_Code %in% imd$utla_code)
+  filter(ONS_Code %in% imd_quintiles_assigned$utla_code)
 
 # Count records after filtering
 records_after <- nrow(cover)
@@ -212,19 +270,40 @@ cat("Records REMOVED:", format(records_removed, big.mark = ","),
 
 # Merge datasets and create IMD quintiles
 cover_merged <- cover %>%
-  left_join(imd, by = c("ONS_Code" = "utla_code")) 
+  left_join(imd_quintiles_assigned, by = c("ONS_Code" = "utla_code")) 
+
+# ✅ VALIDATE MERGE SUCCESS
+merge_success <- cover_merged %>%
+  summarise(
+    Total_Records = n(),
+    Records_With_Quintile = sum(!is.na(imd_quintile)),
+    Records_Missing_Quintile = sum(is.na(imd_quintile)),
+    Pct_Successfully_Merged = round(Records_With_Quintile / Total_Records * 100, 1)
+  )
+
+cat("\n=== MERGE VALIDATION ===\n")
+print(merge_success)
 
 # Check quintile distribution
 quintile_summary <- cover_merged %>%
   distinct(ONS_Code, imd_quintile) %>%
-  count(imd_quintile)
+  count(imd_quintile, name = "n_utlas")
 
-cat("IMD Quintile Distribution:\n")
+cat("\nFinal IMD Quintile Distribution:\n")
 print(quintile_summary)
 
-# Save final merged dataset
-write.csv(cover_merged, file.path(output_dir, "COVER_All_Years_MERGED_WITH_IMD.csv"), row.names = FALSE)
-cat("Merged data saved\n")
+# VERIFY BOUNDARY CHANGE AUTHORITIES HAVE QUINTILES
+boundary_quintile_check <- cover_merged %>%
+  filter(ONS_Code %in% c("E06000058", "E10000021")) %>%
+  select(ONS_Code, UTLA_Name, imd_quintile) %>%
+  distinct()
+
+cat("\n=== BOUNDARY CHANGE AUTHORITY QUINTILE CHECK ===\n")
+print(boundary_quintile_check)
+
+# Save final merged dataset - NO IMPUTATION
+write.csv(cover_merged, file.path(output_dir, "COVER_All_Years_MERGED_WITH_IMD_NO_IMPUTATION.csv"), row.names = FALSE)
+cat("✅ Merged data (no imputation, boundary-corrected) saved\n")
 
 #### 🫧 Geographic Visualization of IMD Quintiles ####
 
@@ -245,7 +324,7 @@ if (!file.exists(shapefile_path)) {
   imd_quintile_map_data <- england_map %>%
     left_join(
       cover_merged %>%
-        filter(Year == "2019/2020") %>%  # Use most recent year
+        filter(Year == "2019/2020") %>%  # Use representative year
         select(ONS_Code, utla_name, imd_quintile) %>%
         distinct() %>%
         mutate(ONS_Code = as.character(ONS_Code)),
@@ -261,14 +340,14 @@ if (!file.exists(shapefile_path)) {
     geom_sf(aes(fill = as.factor(imd_quintile)), color = "white", linewidth = 0.2) +
     scale_fill_manual(
       name = "IMD Quintile",
-      values = purples_intense, #viridis::viridis(5),
+      values = purples_intense,
       labels = c("1 (Least Deprived)", "2", "3", "4", "5 (Most Deprived)"),
       na.value = "grey0"
     ) +
     labs(
       title = "Index of Multiple Deprivation Quintiles by Upper Tier Local Authority",
-      subtitle = "England, 2019",
-      caption = "Each local authority assigned to quintile based on average IMD score"
+      subtitle = "England, 2019 - Boundary-Corrected Data",
+      caption = "Each local authority assigned to quintile based on average IMD score\nBCP and Northamptonshire boundary changes handled appropriately"
     ) +
     theme_void() +
     theme(
@@ -285,9 +364,9 @@ if (!file.exists(shapefile_path)) {
   print(quintile_map)
   
   # Save the map
-  ggsave(file.path(output_dir, "IMD_quintiles_map.png"), quintile_map, 
+  ggsave(file.path(output_dir, "IMD_quintiles_map_boundary_corrected.png"), quintile_map, 
          width = 10, height = 12, dpi = 300)
-  cat("IMD quintile map saved\n")
+  cat("IMD quintile map (boundary-corrected) saved\n")
 }
 
 #### 🫧 Generate UTLA Lists by IMD Quintile ####
@@ -300,7 +379,7 @@ la_by_quintile <- cover_merged %>%
   arrange(imd_quintile, utla_name)
 
 # Print formatted lists for reference
-cat("\n=== UTLA ASSIGNMENTS BY IMD QUINTILE ===\n")
+cat("\n=== UTLA ASSIGNMENTS BY IMD QUINTILE (BOUNDARY-CORRECTED) ===\n")
 for(q in 1:5) {
   cat("\n=================\n")
   cat("IMD Quintile", q, if(q == 1) "(Least Deprived)" else if(q == 5) "(Most Deprived)", "\n")
@@ -314,11 +393,11 @@ for(q in 1:5) {
 }
 
 # Save quintile assignments to CSV for reference
-write.csv(la_by_quintile, file.path(output_dir, "UTLA_IMD_quintile_assignments.csv"), row.names = FALSE)
-cat("Quintile assignments saved\n")
+write.csv(la_by_quintile, file.path(output_dir, "UTLA_IMD_quintile_assignments_boundary_corrected.csv"), row.names = FALSE)
+cat("Quintile assignments (boundary-corrected) saved\n")
 
 #### 🫧 Final Validation Summary ####
-cat("\n=== FINAL DATA VALIDATION ===\n")
+cat("\n=== FINAL VALIDATION SUMMARY ===\n")
 cat("Total UTLAs with quintile assignments:", nrow(la_by_quintile), "\n")
 cat("Expected UTLAs (149):", 149, "\n")
 cat("Missing assignments:", 149 - nrow(la_by_quintile), "\n")
@@ -328,3 +407,19 @@ quintile_counts <- la_by_quintile %>%
   count(imd_quintile, name = "n_utlas")
 cat("UTLAs per quintile:\n")
 print(quintile_counts)
+
+# Final check for boundary change authorities
+boundary_final_check <- la_by_quintile %>%
+  filter(grepl("Bournemouth|Northamptonshire", utla_name, ignore.case = TRUE))
+
+cat("\nBoundary change authorities in final dataset:\n")
+print(boundary_final_check)
+
+if(nrow(boundary_final_check) == 2) {
+  cat("Both BCP and Northamptonshire successfully included with IMD quintiles\n")
+} else {
+  cat(" Missing boundary change authorities - check data processing\n")
+}
+
+
+
