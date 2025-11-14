@@ -17,7 +17,7 @@
 # - Data validation and completeness checks
 #
 # INPUTS: Raw COVER quarterly files, UTLA_summaries.xlsx
-# OUTPUTS: Cleaned CSV files in Cleaned_COVER_Files2/ directory
+# OUTPUTS: Cleaned CSV files
 #===============================================================================
 
 
@@ -54,10 +54,10 @@ utla_imd = read_excel(imd_file, sheet = imd_sheet)
 # Preview data structure
 str(utla_imd)
 
-# Extract just UTLA codes and names, remove City of London and Isles of Scilly
+# Extract just UTLA codes and names
 utla_list = utla_imd %>%
   select(UTLA_code = 1, UTLA_name = 2) %>%
-  filter(!UTLA_name %in% c("City of London", "Isles of Scilly")) %>%
+  filter(!UTLA_name %in% c("City of London", "Isles of Scilly")) %>% # Remove City of London and Isles of Scilly
   # Add Northamptonshire which might be missing
   bind_rows(
     data.frame(UTLA_code = "E10000021", UTLA_name = "Northamptonshire")
@@ -68,8 +68,7 @@ print(utla_list)
 
 valid_utlas = utla_list$UTLA_code
 
-#####################################
-#####################################
+####🫧 Variable setup for UTLAs that had boundary changes during the study period 🫧####
 
 utla_boundary_changes = list(
   # Bournemouth, Christchurch and Poole (created 2019)
@@ -88,10 +87,12 @@ utla_boundary_changes = list(
   )
 )
 
-# Enhanced mapping function with boundary change handling
+####🫧 Set up functions 🫧####
+
+# Mapping function with boundary change handling
 map_utla_codes_enhanced <- function(df, year) {
   
-  # FIX: Handle the case where full_join creates UTLA_Name.x and UTLA_Name.y
+  # Handle the case where full_join creates UTLA_Name.x and UTLA_Name.y
   if ("UTLA_Name.x" %in% names(df) && "UTLA_Name.y" %in% names(df)) {
     df <- df %>%
       mutate(UTLA_Name = coalesce(UTLA_Name.x, UTLA_Name.y)) %>%
@@ -197,7 +198,7 @@ aggregate_boundary_changes <- function(df, year) {
   return(df)
 }
 
-#### 🫧 Data Validation Function 🫧 ####
+# Data Validation Function
 validate_cover_data <- function(cover_data, year) {
   cat("\n=== VALIDATION FOR:", year, "===\n")
   
@@ -216,7 +217,10 @@ validate_cover_data <- function(cover_data, year) {
 
 
 #####################################
+####🫧 COVER data processing 🫧######
 #####################################
+
+
 
 #### ⋆˚࿔ 2 0 1 3 — Q2 🫧 ####
 
