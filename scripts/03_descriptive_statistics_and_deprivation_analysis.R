@@ -6,15 +6,9 @@
 # - Uses boundary-corrected, non-imputed data from Scripts 1 & 2
 # - Calculates national coverage statistics by schedule period (2+1 vs 1+1)
 # - Analyzes vaccine uptake patterns across deprivation quintiles
-# - Creates time trend visualizations showing inequalities
-# - Generates booster retention analysis with 1-year lag (primary from previous year)
 # - Produces WHO target achievement summaries
-#
-# MAJOR REVISIONS:
-# - Uses non-imputed boundary-corrected data (BCP & Northamptonshire properly handled)
-# - Implements 1-year lag for booster gap calculation (primary from previous year)
-# - Removed 2013/2014 from booster gap analysis (insufficient lag data)
-# - Adjusted schedule periods for booster gap analysis per supervisor feedback
+# - Generates booster retention analysis with 1-year lag (primary from previous year)
+# - Creates time trend visualizations showing inequalities
 #
 # INPUTS: 
 # - output/COVER_All_Years_MERGED_WITH_IMD_NO_IMPUTATION.csv
@@ -223,16 +217,16 @@ if (file.exists(booster_gap_file)) {
   # Create primary uptake with 1-year lag
   primary_lag <- data %>%
     mutate(Year_lag = case_when(
-      Year == "2014/2015" ~ "2013/2014",
-      Year == "2015/2016" ~ "2014/2015", 
-      Year == "2016/2017" ~ "2015/2016",
-      Year == "2017/2018" ~ "2016/2017",
-      Year == "2018/2019" ~ "2017/2018",
-      Year == "2019/2020" ~ "2018/2019",
-      Year == "2021/2022" ~ "2020/2021",
-      Year == "2022/2023" ~ "2021/2022",
-      Year == "2023/2024" ~ "2022/2023",
-      Year == "2024/2025" ~ "2023/2024",
+      Year == "2013/2014" ~ "2014/2015",
+      Year == "2014/2015" ~ "2015/2016", 
+      Year == "2015/2016" ~ "2016/2017",
+      Year == "2016/2017" ~ "2017/2018",
+      Year == "2017/2018" ~ "2018/2019",
+      Year == "2018/2019" ~ "2019/2020",
+      Year == "2020/2021" ~ "2021/2022",
+      Year == "2021/2022" ~ "2022/2023",
+      Year == "2022/2023" ~ "2023/2024",
+      Year == "2023/2024" ~ "2024/2025",
       TRUE ~ NA_character_
     )) %>%
     select(ONS_Code, UTLA_Name, Year_lag, Quarter, PCV_12m_lag = PCV_12m, Population_12m_lag = Population_12m) %>%
@@ -257,7 +251,7 @@ if (file.exists(booster_gap_file)) {
 cat("Booster gap analysis periods (with 1-year lag):\n")
 cat("Available years:", paste(unique(booster_gap_data$Year), collapse = ", "), "\n")
 
-# Adjusted schedule periods for booster gap analysis (per supervisor feedback)
+# Adjusted schedule periods for booster gap analysis
 pre_schedule_gap <- booster_gap_data %>% filter(Year %in% c("2014/2015", "2015/2016", "2016/2017", 
                                                             "2017/2018", "2018/2019", "2019/2020"))
 post_schedule_gap <- booster_gap_data %>% filter(Year %in% c("2021/2022", "2022/2023", "2023/2024", "2024/2025"))
