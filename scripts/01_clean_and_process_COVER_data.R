@@ -91,12 +91,16 @@ utla_boundary_changes = list(
 
 # Function to transform character vectors into numeric vectors
 transform_popn_PCV_data_into_numeric_type <- function(df) {
-  df$Population_12m = as.numeric(df$Population_12m)
-  df$Population_24m = as.numeric(df$Population_24m) 
-  df$PCV_12m = as.numeric(df$PCV_12m) 
-  df$PCV_24m = as.numeric(df$PCV_24m) 
   
-  return(df)
+  df_processed = df %>%
+  mutate(
+        Population_12m = as.numeric(Population_12m),
+        Population_24m = as.numeric(Population_24m),
+        PCV_12m = as.numeric(PCV_12m),
+        PCV_24m = as.numeric(PCV_24m)
+  )
+  
+  return(df_processed)
 }
 
 # Mapping function with boundary change handling
@@ -172,17 +176,16 @@ map_utla_codes_enhanced <- function(df, year) {
 
 # Function to aggregate data for split/merged authorities
 aggregate_boundary_changes <- function(df, year) {
-  cat("\n In aggregate_boundary_changes function")
-
+  
+  # Call function to transform character vectors into numeric vectors
+  df = transform_popn_PCV_data_into_numeric_type(df)
+  
   # Aggregate Bournemouth, Christchurch and Poole for pre-2019 years
   if (year %in% c("2013/2014", "2014/2015", "2015/2016", "2016/2017", "2017/2018", "2018/2019")) {
 
     bcp_codes = utla_boundary_changes[["E06000058"]]$pre_2019_codes
     
     if(any(bcp_codes %in% df$ONS_Code)) {
-
-      # Call function to transform character vectors into numeric vectors
-      df = transform_popn_PCV_data_into_numeric_type(df)
       
       # Compute aggregated populaton and PCV uptake statistics for 'Bournemouth, Christchurch and Poole' from 'Bournemouth' and 'Poole' UTLAs 
       bcp_aggregated = df %>%
@@ -214,11 +217,7 @@ aggregate_boundary_changes <- function(df, year) {
     
     if(any(northants_codes %in% df$ONS_Code)) {
 
-      # Call function to transform character vectors into numeric vectors
-      df = transform_popn_PCV_data_into_numeric_type(df)
-      
       # Compute aggregated populaton and PCV uptake statistics for 'Northamptonshire' from 'West Northamptonshire' and 'North Northamptonshire' UTLAs
-  
       northants_aggregated = df %>%
         filter(ONS_Code %in% northants_codes) %>%
         group_by(Year, Quarter, Timepoint, Vaccine_Schedule) %>%
@@ -265,8 +264,6 @@ validate_cover_data <- function(cover_data, year, valid_utlas_vec) {
 #####################################
 ####🫧 COVER data processing 🫧######
 #####################################
-
-
 
 #### ⋆˚࿔ 2 0 1 3 — Q2 🫧 ####
 
@@ -805,11 +802,7 @@ la12 = read_excel(file_path, sheet = "12m_UTLA_AT") %>%
     UTLA_Name = `Upper Tier LA Name`,
     Population_12m = `12m Denominator`,
     PCV_12m = `12m PCV2%`
-  ) %>%
-  mutate(
-    Population_12m = as.numeric(Population_12m),
-    PCV_12m = as.numeric(PCV_12m)
-  ) %>%
+  )  %>%
   filter(!is.na(ONS_Code))
 
 # Load 24-month sheet
@@ -820,10 +813,6 @@ la24 = read_excel(file_path, sheet = "24m_UTLA_AT") %>%
     UTLA_Name = `Upper Tier LA Name`,
     Population_24m = `24m Denominator`,
     PCV_24m = `24m PCV Booster%`
-  ) %>%
-  mutate(
-    Population_24m = as.numeric(Population_24m),
-    PCV_24m = as.numeric(PCV_24m)
   ) %>%
   filter(!is.na(ONS_Code))
 
@@ -861,10 +850,6 @@ la12 = read_excel(file_path, sheet = "12m_UTLA_AT") %>%
     Population_12m = `12m Denominator`,
     PCV_12m = `12m PCV2%`
   ) %>%
-  mutate(
-    Population_12m = as.numeric(Population_12m),
-    PCV_12m = as.numeric(PCV_12m)
-  ) %>%
   filter(!is.na(ONS_Code))
 
 
@@ -880,10 +865,6 @@ la24 = read_excel(file_path, sheet = "24m_UTLA_AT") %>%
     UTLA_Name = `Upper Tier LA Name`,
     Population_24m = `24m Denominator`,
     PCV_24m = `24m PCV Booster%`
-  ) %>%
-  mutate(
-    Population_24m = as.numeric(Population_24m),
-    PCV_24m = as.numeric(PCV_24m)
   ) %>%
   filter(!is.na(ONS_Code))
 
@@ -923,10 +904,6 @@ la12 = read_excel(file_path, sheet = "12m_UTLA_AT") %>%
     Population_12m = `12m Denominator`,
     PCV_12m = `12m PCV2%`
   ) %>%
-  mutate(
-    Population_12m = as.numeric(Population_12m),
-    PCV_12m = as.numeric(PCV_12m)
-  ) %>%
   filter(!is.na(ONS_Code))
 
 # Load 24-month sheet
@@ -937,10 +914,6 @@ la24 = read_excel(file_path, sheet = "24m_UTLA_AT") %>%
     UTLA_Name = `Upper Tier LA Name`,
     Population_24m = `24m Denominator`,
     PCV_24m = `24m PCV Booster%`
-  ) %>%
-  mutate(
-    Population_24m = as.numeric(Population_24m),
-    PCV_24m = as.numeric(PCV_24m)
   ) %>%
   filter(!is.na(ONS_Code))
 
@@ -980,10 +953,6 @@ la12 = read_excel(file_path, sheet = "12m_UTLA_AT") %>%
     Population_12m = `12m Denominator`,
     PCV_12m = `12m PCV2%`
   ) %>%
-  mutate(
-    Population_12m = as.numeric(Population_12m),
-    PCV_12m = as.numeric(PCV_12m)
-  ) %>%
   filter(!is.na(ONS_Code))
 
 # Load 24-month sheet
@@ -994,10 +963,6 @@ la24 = read_excel(file_path, sheet = "24m_UTLA_AT") %>%
     UTLA_Name = `Upper Tier LA Name`,
     Population_24m = `24m Denominator`,
     PCV_24m = `24m PCV Booster%`
-  ) %>%
-  mutate(
-    Population_24m = as.numeric(Population_24m),
-    PCV_24m = as.numeric(PCV_24m)
   ) %>%
   filter(!is.na(ONS_Code))
 
@@ -1051,10 +1016,6 @@ la12 = read_excel(file_path, sheet = "12m_UTLA_AT") %>%
     Population_12m = `12m Denominator`,
     PCV_12m = `12m PCV2%`
   ) %>%
-  mutate(
-    Population_12m = as.numeric(Population_12m),
-    PCV_12m = as.numeric(PCV_12m)
-  ) %>%
   filter(!is.na(ONS_Code))
 
 # Check what values are causing the coercion problem
@@ -1069,10 +1030,6 @@ la24 = read_excel(file_path, sheet = "24m_UTLA_AT") %>%
     UTLA_Name = `Upper Tier LA Name`,
     Population_24m = `24m Denominator`,
     PCV_24m = `24m PCV Booster%`
-  ) %>%
-  mutate(
-    Population_24m = as.numeric(Population_24m),
-    PCV_24m = as.numeric(PCV_24m)
   ) %>%
   filter(!is.na(ONS_Code))
 
@@ -1110,10 +1067,6 @@ la12 = read_excel(file_path, sheet = "12m_UTLA_AT") %>%
     Population_12m = `12m Denominator`,
     PCV_12m = `12m PCV2%`
   ) %>%
-  mutate(
-    Population_12m = as.numeric(Population_12m),
-    PCV_12m = as.numeric(PCV_12m)
-  ) %>%
   filter(!is.na(ONS_Code))
 
 # Load 24-month sheet
@@ -1124,10 +1077,6 @@ la24 = read_excel(file_path, sheet = "24m_UTLA_AT") %>%
     UTLA_Name = `Upper Tier LA Name`,
     Population_24m = `24m Denominator`,
     PCV_24m = `24m PCV Booster%`
-  ) %>%
-  mutate(
-    Population_24m = as.numeric(Population_24m),
-    PCV_24m = as.numeric(PCV_24m)
   ) %>%
   filter(!is.na(ONS_Code))
 
@@ -1167,10 +1116,6 @@ la12 = read_excel(file_path, sheet = "12m_UTLA_AT") %>%
     Population_12m = `12m Denominator`,
     PCV_12m = `12m PCV2%`
   ) %>%
-  mutate(
-    Population_12m = as.numeric(Population_12m),
-    PCV_12m = as.numeric(PCV_12m)
-  ) %>%
   filter(!is.na(ONS_Code))
 
 # Load 24-month sheet
@@ -1181,10 +1126,6 @@ la24 = read_excel(file_path, sheet = "24m_UTLA_AT") %>%
     UTLA_Name = `Upper Tier LA Name`,
     Population_24m = `24m Denominator`,
     PCV_24m = `24m PCV Booster%`
-  ) %>%
-  mutate(
-    Population_24m = as.numeric(Population_24m),
-    PCV_24m = as.numeric(PCV_24m)
   ) %>%
   filter(!is.na(ONS_Code))
 
@@ -1224,10 +1165,6 @@ la12 = read_excel(file_path, sheet = "12m_UTLA_AT") %>%
     Population_12m = `12m Denominator`,
     PCV_12m = `12m PCV2%`
   ) %>%
-  mutate(
-    Population_12m = as.numeric(Population_12m),
-    PCV_12m = as.numeric(PCV_12m)
-  ) %>%
   filter(!is.na(ONS_Code))
 
 # Load 24-month sheet
@@ -1238,10 +1175,6 @@ la24 = read_excel(file_path, sheet = "24m_UTLA_AT") %>%
     UTLA_Name = `Upper Tier LA Name`,
     Population_24m = `24m Denominator`,
     PCV_24m = `24m PCV Booster%`
-  ) %>%
-  mutate(
-    Population_24m = as.numeric(Population_24m),
-    PCV_24m = as.numeric(PCV_24m)
   ) %>%
   filter(!is.na(ONS_Code))
 
@@ -1295,10 +1228,6 @@ la12 = read_excel(file_path, sheet = "12m_UTLA_GOR") %>%
     Population_12m = `12m Denominator`,
     PCV_12m = `12m PCV2%`
   ) %>%
-  mutate(
-    Population_12m = as.numeric(Population_12m),
-    PCV_12m = as.numeric(PCV_12m)
-  ) %>%
   filter(!is.na(ONS_Code))
 
 # Load 24-month sheet
@@ -1309,10 +1238,6 @@ la24 = read_excel(file_path, sheet = "24m_UTLA_GOR") %>%
     UTLA_Name = `Upper Tier LA Name`,
     Population_24m = `24m Denominator`,
     PCV_24m = `24m PCV Booster%`
-  ) %>%
-  mutate(
-    Population_24m = as.numeric(Population_24m),
-    PCV_24m = as.numeric(PCV_24m)
   ) %>%
   filter(!is.na(ONS_Code))
 
@@ -1350,10 +1275,6 @@ la12 = read_excel(file_path, sheet = "12m_UTLA_GOR") %>%
     Population_12m = `12m Denominator`,
     PCV_12m = `12m PCV2%`
   ) %>%
-  mutate(
-    Population_12m = as.numeric(Population_12m),
-    PCV_12m = as.numeric(PCV_12m)
-  ) %>%
   filter(!is.na(ONS_Code))
 
 # Load 24-month sheet
@@ -1364,10 +1285,6 @@ la24 = read_excel(file_path, sheet = "24m_UTLA_GOR") %>%
     UTLA_Name = `Upper Tier LA Name`,
     Population_24m = `24m Denominator`,
     PCV_24m = `24m PCV Booster%`
-  ) %>%
-  mutate(
-    Population_24m = as.numeric(Population_24m),
-    PCV_24m = as.numeric(PCV_24m)
   ) %>%
   filter(!is.na(ONS_Code))
 
@@ -1407,10 +1324,6 @@ la12 = read_excel(file_path, sheet = "12m_UTLA_GOR") %>%
     Population_12m = `12m Denominator`,
     PCV_12m = `12m PCV2%`
   ) %>%
-  mutate(
-    Population_12m = as.numeric(Population_12m),
-    PCV_12m = as.numeric(PCV_12m)
-  ) %>%
   filter(!is.na(ONS_Code))
 
 # Load 24-month sheet
@@ -1421,10 +1334,6 @@ la24 = read_excel(file_path, sheet = "24m_UTLA_GOR") %>%
     UTLA_Name = `Upper Tier LA Name`,
     Population_24m = `24m Denominator`,
     PCV_24m = `24m PCV Booster%`
-  ) %>%
-  mutate(
-    Population_24m = as.numeric(Population_24m),
-    PCV_24m = as.numeric(PCV_24m)
   ) %>%
   filter(!is.na(ONS_Code))
 
@@ -1464,10 +1373,6 @@ la12 = read_excel(file_path, sheet = "12m_UTLA_GOR") %>%
     Population_12m = `12m Denominator`,
     PCV_12m = `12m PCV2%`
   ) %>%
-  mutate(
-    Population_12m = as.numeric(Population_12m),
-    PCV_12m = as.numeric(PCV_12m)
-  ) %>%
   filter(!is.na(ONS_Code))
 
 # Load 24-month sheet
@@ -1478,10 +1383,6 @@ la24 = read_excel(file_path, sheet = "24m_UTLA_GOR") %>%
     UTLA_Name = `Upper Tier LA Name`,
     Population_24m = `24m Denominator`,
     PCV_24m = `24m PCV Booster%`
-  ) %>%
-  mutate(
-    Population_24m = as.numeric(Population_24m),
-    PCV_24m = as.numeric(PCV_24m)
   ) %>%
   filter(!is.na(ONS_Code))
 
@@ -1535,10 +1436,6 @@ la12 = read_ods(file_path, sheet = "12m_UTLA_GOR") %>%
     Population_12m = `12m Denominator`,
     PCV_12m = `12m PCV2%`
   ) %>%
-  mutate(
-    Population_12m = as.numeric(Population_12m),
-    PCV_12m = as.numeric(PCV_12m)
-  ) %>%
   filter(!is.na(ONS_Code))
 
 # Load 24-month sheet
@@ -1549,10 +1446,6 @@ la24 = read_ods(file_path, sheet = "24m_UTLA_GOR") %>%
     UTLA_Name = `Upper Tier LA Name`,
     Population_24m = `24m Denominator`,
     PCV_24m = `24m PCV Booster%`
-  ) %>%
-  mutate(
-    Population_24m = as.numeric(Population_24m),
-    PCV_24m = as.numeric(PCV_24m)
   ) %>%
   filter(!is.na(ONS_Code))
 
@@ -1590,10 +1483,6 @@ la12 = read_ods(file_path, sheet = "12m_UTLA_GOR") %>%
     Population_12m = `12m Denominator`,
     PCV_12m = `12m PCV2%`
   ) %>%
-  mutate(
-    Population_12m = as.numeric(Population_12m),
-    PCV_12m = as.numeric(PCV_12m)
-  ) %>%
   filter(!is.na(ONS_Code))
 
 # Load 24-month sheet
@@ -1604,10 +1493,6 @@ la24 = read_ods(file_path, sheet = "24m_UTLA_GOR") %>%
     UTLA_Name = `Upper Tier LA Name`,
     Population_24m = `24m Denominator`,
     PCV_24m = `24m PCV Booster%`
-  ) %>%
-  mutate(
-    Population_24m = as.numeric(Population_24m),
-    PCV_24m = as.numeric(PCV_24m)
   ) %>%
   filter(!is.na(ONS_Code))
 
@@ -1647,10 +1532,6 @@ la12 = read_ods(file_path, sheet = "12m_UTLA_GOR") %>%
     Population_12m = `12m Denominator`,
     PCV_12m = `12m PCV2%`
   ) %>%
-  mutate(
-    Population_12m = as.numeric(Population_12m),
-    PCV_12m = as.numeric(PCV_12m)
-  ) %>%
   filter(!is.na(ONS_Code))
 
 # Load 24-month sheet
@@ -1661,10 +1542,6 @@ la24 = read_ods(file_path, sheet = "24m_UTLA_GOR") %>%
     UTLA_Name = `Upper Tier LA Name`,
     Population_24m = `24m Denominator`,
     PCV_24m = `24m PCV Booster%`
-  ) %>%
-  mutate(
-    Population_24m = as.numeric(Population_24m),
-    PCV_24m = as.numeric(PCV_24m)
   ) %>%
   filter(!is.na(ONS_Code))
 
@@ -1704,10 +1581,6 @@ la12 = read_ods(file_path, sheet = "12m_UTLA_GOR") %>%
     Population_12m = `12m Denominator`,
     PCV_12m = `12m PCV2%`
   ) %>%
-  mutate(
-    Population_12m = as.numeric(Population_12m),
-    PCV_12m = as.numeric(PCV_12m)
-  ) %>%
   filter(!is.na(ONS_Code))
 
 # Load 24-month sheet
@@ -1718,10 +1591,6 @@ la24 = read_ods(file_path, sheet = "24m_UTLA_GOR") %>%
     UTLA_Name = `Upper Tier LA Name`,
     Population_24m = `24m Denominator`,
     PCV_24m = `24m PCV Booster%`
-  ) %>%
-  mutate(
-    Population_24m = as.numeric(Population_24m),
-    PCV_24m = as.numeric(PCV_24m)
   ) %>%
   filter(!is.na(ONS_Code))
 
@@ -1760,14 +1629,9 @@ print(missing_utlas)
 
 utla_list %>% filter(UTLA_code %in% missing_utlas)
 
-
-
-
 #####################################
 #### *ੈ✩‧₊˚༺☆༻*ੈ✩‧₊˚ V  A  C  C  I  N  E    C  H  A  N  G  E *ੈ✩‧₊˚༺☆༻*ੈ✩‧₊˚  ####
 #####################################
-
-
 
 #### ⋆˚࿔ 2 0 2 0 𝜗𝜚˚ ⋆ ####
 
@@ -1783,10 +1647,6 @@ la12 = read_ods(file_path, sheet = "12m_UTLA_GOR") %>%
     Population_12m = `12m Denominator`,
     PCV_12m = `12m PCV2%`
   ) %>%
-  mutate(
-    Population_12m = as.numeric(Population_12m),
-    PCV_12m = as.numeric(PCV_12m)
-  ) %>%
   filter(!is.na(ONS_Code))
 
 # Load 24-month sheet
@@ -1797,10 +1657,6 @@ la24 = read_ods(file_path, sheet = "24m_UTLA_GOR") %>%
     UTLA_Name = `Upper Tier LA Name`,
     Population_24m = `24m Denominator`,
     PCV_24m = `24m PCV Booster%`
-  ) %>%
-  mutate(
-    Population_24m = as.numeric(Population_24m),
-    PCV_24m = as.numeric(PCV_24m)
   ) %>%
   filter(!is.na(ONS_Code))
 
@@ -1835,10 +1691,6 @@ la12 = read_ods(file_path, sheet = "12m_UTLA_GOR") %>%
     Population_12m = `12m Denominator`,
     PCV_12m = `12m PCV2%`
   ) %>%
-  mutate(
-    Population_12m = as.numeric(Population_12m),
-    PCV_12m = as.numeric(PCV_12m)
-  ) %>%
   filter(!is.na(ONS_Code))
 
 la24 = read_ods(file_path, sheet = "24m_UTLA_GOR") %>%
@@ -1848,10 +1700,6 @@ la24 = read_ods(file_path, sheet = "24m_UTLA_GOR") %>%
     UTLA_Name = `Upper Tier LA Name`,
     Population_24m = `24m Denominator`,
     PCV_24m = `24m PCV Booster%`
-  ) %>%
-  mutate(
-    Population_24m = as.numeric(Population_24m),
-    PCV_24m = as.numeric(PCV_24m)
   ) %>%
   filter(!is.na(ONS_Code))
 
@@ -1886,10 +1734,6 @@ la12 = read_ods(file_path, sheet = "12m_UTLA_GOR") %>%
     Population_12m = `12m Denominator`,
     PCV_12m = `12m PCV2%`
   ) %>%
-  mutate(
-    Population_12m = as.numeric(Population_12m),
-    PCV_12m = as.numeric(PCV_12m)
-  ) %>%
   filter(!is.na(ONS_Code))
 
 la24 = read_ods(file_path, sheet = "24m_UTLA_GOR") %>%
@@ -1899,10 +1743,6 @@ la24 = read_ods(file_path, sheet = "24m_UTLA_GOR") %>%
     UTLA_Name = `Upper Tier LA Name`,
     Population_24m = `24m Denominator`,
     PCV_24m = `24m PCV Booster%`
-  ) %>%
-  mutate(
-    Population_24m = as.numeric(Population_24m),
-    PCV_24m = as.numeric(PCV_24m)
   ) %>%
   filter(!is.na(ONS_Code))
 
@@ -1936,11 +1776,7 @@ la12 = read_ods(file_path, sheet = "12m_UTLA_GOR") %>%
     UTLA_Name = `Upper Tier LA Name`,
     Population_12m = `12m Denominator`,
     PCV_12m = `12m PCV1%`
-  ) %>%
-  mutate(
-    Population_12m = as.numeric(Population_12m),
-    PCV_12m = as.numeric(PCV_12m)
-  ) %>%
+  )  %>%
   filter(!is.na(ONS_Code))
 
 la24 = read_ods(file_path, sheet = "24m_UTLA_GOR") %>%
@@ -1950,10 +1786,6 @@ la24 = read_ods(file_path, sheet = "24m_UTLA_GOR") %>%
     UTLA_Name = `Upper Tier LA Name`,
     Population_24m = `24m Denominator`,
     PCV_24m = `24m PCV Booster%`
-  ) %>%
-  mutate(
-    Population_24m = as.numeric(Population_24m),
-    PCV_24m = as.numeric(PCV_24m)
   ) %>%
   filter(!is.na(ONS_Code))
 
@@ -2003,11 +1835,8 @@ la12 = read_ods(file_path, sheet = "12m_UTLA_GOR") %>%
     Population_12m = `12m Denominator`,
     PCV_12m = `12m PCV1%`
   ) %>%
-  mutate(
-    Population_12m = as.numeric(Population_12m),
-    PCV_12m = as.numeric(PCV_12m)
-  ) %>%
-  filter(!is.na(ONS_Code))
+  map_utla_codes_enhanced("2021/2022") %>%
+  filter(ONS_Code %in% valid_utlas_from_2021_onwards)
 
 la24 = read_ods(file_path, sheet = "24m_UTLA_GOR") %>%
   select(`ONS Upper Tier LA Code`, `Upper Tier LA Name`, `24m Denominator`, `24m PCV Booster%`) %>%
@@ -2017,15 +1846,10 @@ la24 = read_ods(file_path, sheet = "24m_UTLA_GOR") %>%
     Population_24m = `24m Denominator`,
     PCV_24m = `24m PCV Booster%`
   ) %>%
-  mutate(
-    Population_24m = as.numeric(Population_24m),
-    PCV_24m = as.numeric(PCV_24m)
-  ) %>%
-  filter(!is.na(ONS_Code))
+  map_utla_codes_enhanced("2021/2022") %>%
+  filter(ONS_Code %in% valid_utlas_from_2021_onwards)
 
 merged_LA = full_join(la12, la24, by = c("ONS_Code", "UTLA_Name")) %>%
-  map_utla_codes_enhanced("2021/2022") %>%
-  filter(ONS_Code %in% valid_utlas_from_2021_onwards) %>%
   mutate(
     Year = "2021/2022",
     Quarter = "Q1",
@@ -2053,10 +1877,6 @@ la12 = read_ods(file_path, sheet = "12m_UTLA_GOR", skip = 4) %>%
     PCV_12m = `12m PCV1%`
   ) %>%
   map_utla_codes_enhanced("2021/2022") %>%
-  mutate(
-    Population_12m = as.numeric(Population_12m),
-    PCV_12m = as.numeric(PCV_12m)
-  ) %>%
   filter(ONS_Code %in% valid_utlas_from_2021_onwards)
 
 la24 = read_ods(file_path, sheet = "24m_UTLA_GOR", skip = 4) %>%
@@ -2068,10 +1888,6 @@ la24 = read_ods(file_path, sheet = "24m_UTLA_GOR", skip = 4) %>%
     PCV_24m = `24m PCV Booster%`
   ) %>%
   map_utla_codes_enhanced("2021/2022") %>%
-  mutate(
-    Population_24m = as.numeric(Population_24m),
-    PCV_24m = as.numeric(PCV_24m)
-  ) %>%
   filter(ONS_Code %in% valid_utlas_from_2021_onwards)
 
 merged_LA = full_join(la12, la24, by = c("ONS_Code", "UTLA_Name")) %>%
@@ -2104,10 +1920,6 @@ la12 = read_ods(file_path, sheet = "12m_UTLA_GOR", skip = 4) %>%
     PCV_12m = `12 month PCV1%`
   ) %>%
   map_utla_codes_enhanced("2021/2022") %>%
-  mutate(
-    Population_12m = as.numeric(Population_12m),
-    PCV_12m = as.numeric(PCV_12m)
-  ) %>%
   filter(ONS_Code %in% valid_utlas_from_2021_onwards)
 
 la24 = read_ods(file_path, sheet = "24m_UTLA_GOR", skip = 4) %>%
@@ -2119,10 +1931,6 @@ la24 = read_ods(file_path, sheet = "24m_UTLA_GOR", skip = 4) %>%
     PCV_24m = `24 month PCV Booster%`
   ) %>%
   map_utla_codes_enhanced("2021/2022") %>%
-  mutate(
-    Population_24m = as.numeric(Population_24m),
-    PCV_24m = as.numeric(PCV_24m)
-  ) %>%
   filter(ONS_Code %in% valid_utlas_from_2021_onwards)
 
 merged_LA = full_join(la12, la24, by = c("ONS_Code", "UTLA_Name")) %>%
@@ -2155,10 +1963,6 @@ la12 = read_ods(file_path, sheet = "12m_UTLA_GOR", skip = 4) %>%
     PCV_12m = `12m PCV1%`
   ) %>%
   map_utla_codes_enhanced("2021/2022") %>%
-  mutate(
-    Population_12m = as.numeric(Population_12m),
-    PCV_12m = as.numeric(PCV_12m)
-  ) %>%
   filter(ONS_Code %in% valid_utlas_from_2021_onwards)
 
 la24 = read_ods(file_path, sheet = "24m_UTLA_GOR", skip = 4) %>%
@@ -2170,10 +1974,6 @@ la24 = read_ods(file_path, sheet = "24m_UTLA_GOR", skip = 4) %>%
     PCV_24m = `24m PCV Booster%`
   ) %>%
   map_utla_codes_enhanced("2021/2022") %>%
-  mutate(
-    Population_24m = as.numeric(Population_24m),
-    PCV_24m = as.numeric(PCV_24m)
-  ) %>%
   filter(ONS_Code %in% valid_utlas_from_2021_onwards)
 
 merged_LA = full_join(la12, la24, by = c("ONS_Code", "UTLA_Name")) %>%
@@ -2221,10 +2021,6 @@ la12 = read_ods(file_path, sheet = "12m_UTLA_GOR", skip = 4) %>%
     PCV_12m = `12m PCV1%`
   ) %>%
   map_utla_codes_enhanced("2022/2023") %>%
-  mutate(
-    Population_12m = as.numeric(Population_12m),
-    PCV_12m = as.numeric(PCV_12m)
-  ) %>%
   filter(ONS_Code %in% valid_utlas_from_2021_onwards)
 
 la24 = read_ods(file_path, sheet = "24m_UTLA_GOR", skip = 4) %>%
@@ -2236,10 +2032,6 @@ la24 = read_ods(file_path, sheet = "24m_UTLA_GOR", skip = 4) %>%
     PCV_24m = `24m PCV Booster%`
   ) %>%
   map_utla_codes_enhanced("2022/2023") %>%
-  mutate(
-    Population_24m = as.numeric(Population_24m),
-    PCV_24m = as.numeric(PCV_24m)
-  ) %>%
   filter(ONS_Code %in% valid_utlas_from_2021_onwards)
 
 merged_LA = full_join(la12, la24, by = c("ONS_Code", "UTLA_Name")) %>%
@@ -2270,10 +2062,6 @@ la12 = read_ods(file_path, sheet = "12m_UTLA_GOR", skip = 4) %>%
     PCV_12m = `12m PCV1%`
   ) %>%
   map_utla_codes_enhanced("2022/2023") %>%
-  mutate(
-    Population_12m = as.numeric(Population_12m),
-    PCV_12m = as.numeric(PCV_12m)
-  ) %>%
   filter(ONS_Code %in% valid_utlas_from_2021_onwards)
 
 la24 = read_ods(file_path, sheet = "24m_UTLA_GOR", skip = 5) %>%
@@ -2285,10 +2073,6 @@ la24 = read_ods(file_path, sheet = "24m_UTLA_GOR", skip = 5) %>%
     PCV_24m = `24m PCV Booster%`
   ) %>%
   map_utla_codes_enhanced("2022/2023") %>%
-  mutate(
-    Population_24m = as.numeric(Population_24m),
-    PCV_24m = as.numeric(PCV_24m)
-  ) %>%
   filter(ONS_Code %in% valid_utlas_from_2021_onwards)
 
 merged_LA = full_join(la12, la24, by = c("ONS_Code", "UTLA_Name")) %>%
@@ -2321,10 +2105,6 @@ la12 = read_ods(file_path, sheet = "12m_UTLA_GOR", skip = 4) %>%
     PCV_12m = `12m PCV1%`
   ) %>%
   map_utla_codes_enhanced("2022/2023") %>%
-  mutate(
-    Population_12m = as.numeric(Population_12m),
-    PCV_12m = as.numeric(PCV_12m)
-  ) %>%
   filter(ONS_Code %in% valid_utlas_from_2021_onwards)
 
 la24 = read_ods(file_path, sheet = "24m_UTLA_GOR", skip = 5) %>%
@@ -2336,10 +2116,6 @@ la24 = read_ods(file_path, sheet = "24m_UTLA_GOR", skip = 5) %>%
     PCV_24m = `24m PCV Booster%`
   ) %>%
   map_utla_codes_enhanced("2022/2023") %>%
-  mutate(
-    Population_24m = as.numeric(Population_24m),
-    PCV_24m = as.numeric(PCV_24m)
-  ) %>%
   filter(ONS_Code %in% valid_utlas_from_2021_onwards)
 
 merged_LA = full_join(la12, la24, by = c("ONS_Code", "UTLA_Name")) %>%
@@ -2372,10 +2148,6 @@ la12 = read_ods(file_path, sheet = "12m_UTLA_GOR", skip = 5) %>%
     PCV_12m = `12 month PCV1%`
   ) %>%
   map_utla_codes_enhanced("2022/2023") %>%
-  mutate(
-    Population_12m = as.numeric(Population_12m),
-    PCV_12m = as.numeric(PCV_12m)
-  ) %>%
   filter(ONS_Code %in% valid_utlas_from_2021_onwards)
 
 la24 = read_ods(file_path, sheet = "24m_UTLA_GOR", skip = 5) %>%
@@ -2387,10 +2159,6 @@ la24 = read_ods(file_path, sheet = "24m_UTLA_GOR", skip = 5) %>%
     PCV_24m = `24 month PCV Booster%`
   ) %>%
   map_utla_codes_enhanced("2022/2023") %>%
-  mutate(
-    Population_24m = as.numeric(Population_24m),
-    PCV_24m = as.numeric(PCV_24m)
-  ) %>%
   filter(ONS_Code %in% valid_utlas_from_2021_onwards)
 
 merged_LA = full_join(la12, la24, by = c("ONS_Code", "UTLA_Name")) %>%
@@ -2438,10 +2206,6 @@ la12 = read_ods(file_path, sheet = "12m_UTLA_GOR", skip = 5) %>%
     PCV_12m = `12m PCV1%`
   ) %>%
   map_utla_codes_enhanced("2023/2024") %>%
-  mutate(
-    Population_12m = as.numeric(Population_12m),
-    PCV_12m = as.numeric(PCV_12m)
-  ) %>%
   filter(!is.na(ONS_Code))
 
 la24 = read_ods(file_path, sheet = "24m_UTLA_GOR", skip = 5) %>%
@@ -2453,10 +2217,6 @@ la24 = read_ods(file_path, sheet = "24m_UTLA_GOR", skip = 5) %>%
     PCV_24m = `24m PCV Booster%`
   ) %>%
   map_utla_codes_enhanced("2023/2024") %>%
-  mutate(
-    Population_24m = as.numeric(Population_24m),
-    PCV_24m = as.numeric(PCV_24m)
-  ) %>%
   filter(!is.na(ONS_Code))
 
 merged_LA = full_join(la12, la24, by = c("ONS_Code", "UTLA_Name")) %>%
@@ -2487,10 +2247,6 @@ la12 = read_ods(file_path, sheet = "12m_UTLA_GOR", skip = 6) %>%
     PCV_12m = `12m PCV1%`
   ) %>%
   map_utla_codes_enhanced("2023/2024") %>%
-  mutate(
-    Population_12m = as.numeric(Population_12m),
-    PCV_12m = as.numeric(PCV_12m)
-  ) %>%
   filter(!is.na(ONS_Code))
 
 la24 = read_ods(file_path, sheet = "24m_UTLA_GOR", skip = 5) %>%
@@ -2502,10 +2258,6 @@ la24 = read_ods(file_path, sheet = "24m_UTLA_GOR", skip = 5) %>%
     PCV_24m = `24m PCV Booster%`
   ) %>%
   map_utla_codes_enhanced("2023/2024") %>%
-  mutate(
-    Population_24m = as.numeric(Population_24m),
-    PCV_24m = as.numeric(PCV_24m)
-  ) %>%
   filter(!is.na(ONS_Code))
 
 merged_LA = full_join(la12, la24, by = c("ONS_Code", "UTLA_Name")) %>%
@@ -2538,10 +2290,6 @@ la12 = read_ods(file_path, sheet = "12m_UTLA_GOR", skip = 5) %>%
     PCV_12m = `12m PCV1%`
   ) %>%
   map_utla_codes_enhanced("2023/2024") %>%
-  mutate(
-    Population_12m = as.numeric(Population_12m),
-    PCV_12m = as.numeric(PCV_12m)
-  ) %>%
   filter(!is.na(ONS_Code))
 
 la24 = read_ods(file_path, sheet = "24m_UTLA_GOR", skip = 5) %>%
@@ -2553,10 +2301,6 @@ la24 = read_ods(file_path, sheet = "24m_UTLA_GOR", skip = 5) %>%
     PCV_24m = `24m PCV Booster%`
   ) %>%
   map_utla_codes_enhanced("2023/2024") %>%
-  mutate(
-    Population_24m = as.numeric(Population_24m),
-    PCV_24m = as.numeric(PCV_24m)
-  ) %>%
   filter(!is.na(ONS_Code))
 
 merged_LA = full_join(la12, la24, by = c("ONS_Code", "UTLA_Name")) %>%
@@ -2589,10 +2333,6 @@ la12 = read_ods(file_path, sheet = "12m_UTLA_GOR", skip = 5) %>%
     PCV_12m = `12m PCV1%`
   ) %>%
   map_utla_codes_enhanced("2023/2024") %>%
-  mutate(
-    Population_12m = as.numeric(Population_12m),
-    PCV_12m = as.numeric(PCV_12m)
-  ) %>%
   filter(!is.na(ONS_Code), ONS_Code != "[z]")
 
 la24 = read_ods(file_path, sheet = "24m_UTLA_GOR", skip = 5) %>%
@@ -2604,10 +2344,6 @@ la24 = read_ods(file_path, sheet = "24m_UTLA_GOR", skip = 5) %>%
     PCV_24m = `24m PCV Booster%`
   ) %>%
   map_utla_codes_enhanced("2023/2024") %>%
-  mutate(
-    Population_24m = as.numeric(Population_24m),
-    PCV_24m = as.numeric(PCV_24m)
-  ) %>%
   filter(!is.na(ONS_Code), ONS_Code != "[z]")
 
 merged_LA = full_join(la12, la24, by = c("ONS_Code", "UTLA_Name")) %>%
@@ -2655,10 +2391,6 @@ la12 = read_ods(file_path, sheet = "12m_UTLA_GOR", skip = 5) %>%
     PCV_12m = `12m PCV1 (%)`
   ) %>%
   map_utla_codes_enhanced("2024/2025") %>%
-  mutate(
-    Population_12m = as.numeric(Population_12m),
-    PCV_12m = as.numeric(PCV_12m)
-  ) %>%
   filter(!is.na(ONS_Code), ONS_Code != "[z]")
 
 la24 = read_ods(file_path, sheet = "24m_UTLA_GOR", skip = 5) %>%
@@ -2670,10 +2402,6 @@ la24 = read_ods(file_path, sheet = "24m_UTLA_GOR", skip = 5) %>%
     PCV_24m = `24m PCV Booster%`
   ) %>%
   map_utla_codes_enhanced("2024/2025") %>%
-  mutate(
-    Population_24m = as.numeric(Population_24m),
-    PCV_24m = as.numeric(PCV_24m)
-  ) %>%
   filter(!is.na(ONS_Code), ONS_Code != "[z]")
 
 merged_LA = full_join(la12, la24, by = c("ONS_Code", "UTLA_Name")) %>%
@@ -2704,10 +2432,6 @@ la12 = read_ods(file_path, sheet = "12m_UTLA_GOR", skip = 6) %>%
     PCV_12m = `Coverage at 12 months PCV1 (%)`
   ) %>%
   map_utla_codes_enhanced("2024/2025") %>%
-  mutate(
-    Population_12m = as.numeric(Population_12m),
-    PCV_12m = as.numeric(PCV_12m)
-  ) %>%
   filter(!is.na(ONS_Code), ONS_Code != "[z]")
 
 la24 = read_ods(file_path, sheet = "24m_UTLA_GOR", skip = 6) %>%
@@ -2719,10 +2443,6 @@ la24 = read_ods(file_path, sheet = "24m_UTLA_GOR", skip = 6) %>%
     PCV_24m = `Coverage at 24 months PCV Booster (%)`
   ) %>%
   map_utla_codes_enhanced("2024/2025") %>%
-  mutate(
-    Population_24m = as.numeric(Population_24m),
-    PCV_24m = as.numeric(PCV_24m)
-  ) %>%
   filter(!is.na(ONS_Code), ONS_Code != "[z]")
 
 merged_LA = full_join(la12, la24, by = c("ONS_Code", "UTLA_Name")) %>%
@@ -2755,10 +2475,6 @@ la12 = read_ods(file_path, sheet = "Table5", skip = 5) %>%
     PCV_12m = `Coverage at 12 months PCV1 (%)`
   ) %>%
   map_utla_codes_enhanced("2024/2025") %>%
-  mutate(
-    Population_12m = as.numeric(Population_12m),
-    PCV_12m = as.numeric(PCV_12m)
-  ) %>%
   filter(!is.na(ONS_Code), ONS_Code != "[z]")
 
 la24 = read_ods(file_path, sheet = "Table6", skip = 4) %>%
@@ -2770,10 +2486,6 @@ la24 = read_ods(file_path, sheet = "Table6", skip = 4) %>%
     PCV_24m = `Coverage at 24 months PCV Booster (%)`
   ) %>%
   map_utla_codes_enhanced("2024/2025") %>%
-  mutate(
-    Population_24m = as.numeric(Population_24m),
-    PCV_24m = as.numeric(PCV_24m)
-  ) %>%
   filter(!is.na(ONS_Code), ONS_Code != "[z]")
 
 merged_LA = full_join(la12, la24, by = c("ONS_Code", "UTLA_Name")) %>%
