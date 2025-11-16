@@ -89,6 +89,16 @@ utla_boundary_changes = list(
 
 ####🫧 Set up functions 🫧####
 
+# Function to transform character vectors into numeric vectors
+transform_popn_PCV_data_into_numeric_type <- function(df) {
+  df$Population_12m = as.numeric(df$Population_12m)
+  df$Population_24m = as.numeric(df$Population_24m) 
+  df$PCV_12m = as.numeric(df$PCV_12m) 
+  df$PCV_24m = as.numeric(df$PCV_24m) 
+  
+  return(df)
+}
+
 # Mapping function with boundary change handling
 map_utla_codes_enhanced <- function(df, year) {
   
@@ -166,21 +176,23 @@ aggregate_boundary_changes <- function(df, year) {
 
   # Aggregate Bournemouth, Christchurch and Poole for pre-2019 years
   if (year %in% c("2013/2014", "2014/2015", "2015/2016", "2016/2017", "2017/2018", "2018/2019")) {
-    cat("\n In Aggregate Bournemouth, Christchurch and Poole for pre-2019 years section")
-    
+
     bcp_codes = utla_boundary_changes[["E06000058"]]$pre_2019_codes
     
     if(any(bcp_codes %in% df$ONS_Code)) {
-      cat("\n In bcp_codes checked loop")
+
+      # Call function to transform character vectors into numeric vectors
+      df = transform_popn_PCV_data_into_numeric_type(df)
       
+      # Compute aggregated populaton and PCV uptake statistics for 'Bournemouth, Christchurch and Poole' from 'Bournemouth' and 'Poole' UTLAs 
       bcp_aggregated = df %>%
         filter(ONS_Code %in% bcp_codes) %>%
         group_by(Year, Quarter, Timepoint, Vaccine_Schedule) %>%
         summarise(
           # Compute weighted average for the PCV uptake from 'Bournemouth' and 'Poole' UTLAs
-          PCV_12m = ifelse(all(is.na(Population_12m)) | sum(Population_12m == "N.A.", na.rm = TRUE) == 0 | sum(Population_12m, na.rm = TRUE) == 0, 
+          PCV_12m = ifelse(all(is.na(Population_12m)) | sum(Population_12m, na.rm = TRUE) == 0, 
                            NA, weighted.mean(PCV_12m, Population_12m, na.rm = TRUE)),
-          PCV_24m = ifelse(all(is.na(Population_24m)) | sum(Population_24m == "N.A.", na.rm = TRUE) == 0 | sum(Population_24m, na.rm = TRUE) == 0,
+          PCV_24m = ifelse(all(is.na(Population_24m)) | sum(Population_24m, na.rm = TRUE) == 0,
                            NA, weighted.mean(PCV_24m, Population_24m, na.rm = TRUE)),
           
           # Get total population in 'Bournemouth' and 'Poole' UTLAs
@@ -200,21 +212,21 @@ aggregate_boundary_changes <- function(df, year) {
   if (year %in% c("2021/2022", "2022/2023", "2023/2024", "2024/2025")) {
     northants_codes = utla_boundary_changes[["E10000021"]]$post_2021_codes
     
-    cat("\n In Aggregate Northamptonshire for post-2020 years")
-    
-    print(df)
-    
     if(any(northants_codes %in% df$ONS_Code)) {
-      cat("\n In northants_codes checked loop")
+
+      # Call function to transform character vectors into numeric vectors
+      df = transform_popn_PCV_data_into_numeric_type(df)
       
+      # Compute aggregated populaton and PCV uptake statistics for 'Northamptonshire' from 'West Northamptonshire' and 'North Northamptonshire' UTLAs
+  
       northants_aggregated = df %>%
         filter(ONS_Code %in% northants_codes) %>%
         group_by(Year, Quarter, Timepoint, Vaccine_Schedule) %>%
         summarise(
           # Compute weighted average for the PCV uptake from 'West Northamptonshire' and 'North Northamptonshire' UTLAs
-          PCV_12m = ifelse(all(is.na(Population_12m)) | sum(Population_12m == "N.A.", na.rm = TRUE) == 0 | sum(Population_12m, na.rm = TRUE) == 0, 
+          PCV_12m = ifelse(all(is.na(Population_12m)) | sum(Population_12m, na.rm = TRUE) == 0, 
                            NA, weighted.mean(PCV_12m, Population_12m, na.rm = TRUE)),
-          PCV_24m = ifelse(all(is.na(Population_24m)) | sum(Population_24m == "N.A.", na.rm = TRUE) == 0 | sum(Population_24m, na.rm = TRUE) == 0,
+          PCV_24m = ifelse(all(is.na(Population_24m)) | sum(Population_24m, na.rm = TRUE) == 0,
                            NA, weighted.mean(PCV_24m, Population_24m, na.rm = TRUE)),
           
           # Get total population in 'West Northamptonshire' and 'North Northamptonshire' UTLAs
@@ -234,14 +246,14 @@ aggregate_boundary_changes <- function(df, year) {
 }
 
 # Data Validation Function
-validate_cover_data <- function(cover_data, year) {
+validate_cover_data <- function(cover_data, year, valid_utlas_vec) {
   cat("\n=== VALIDATION FOR:", year, "===\n")
   
   coverage = cover_data %>%
     group_by(Quarter) %>%
     summarise(
       Unique_UTLAs = n_distinct(ONS_Code),
-      Expected_UTLAs = length(valid_utlas),
+      Expected_UTLAs = length(valid_utlas_vec),
       Coverage_Pct = round(Unique_UTLAs / Expected_UTLAs * 100, 1)
     )
   
@@ -294,12 +306,17 @@ merged_LA = full_join(la12, la24, by = c("ONS_Code", "UTLA_Name")) %>%
   select(ONS_Code, UTLA_Name, PCV_12m, PCV_24m, Population_12m, Population_24m,
          Year, Quarter, Timepoint, Vaccine_Schedule)
 
+# Replace string representing 'NA' with NA
+merged_LA[merged_LA == "N.A."] <- NA
+
 # Apply boundary change aggregation
 merged_LA = aggregate_boundary_changes(merged_LA, "2013/2014")
 
 # Save Q2
 fwrite(merged_LA, file.path(clean_dir, "COVER_2013_Q2_Cleaned.csv"))
-validate_cover_data(merged_LA, "2013/2014 Q2")
+
+# Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
+validate_cover_data(merged_LA, "2013/2014 Q2", valid_utlas_2019_to_2021) 
 
 #### 🫧 2013 Q3 🫧 ####
 file_path = file.path(main_dir, "2013_Q3.xls")
@@ -340,7 +357,9 @@ merged_LA = aggregate_boundary_changes(merged_LA, "2013/2014")
 q2_data = fread(file.path(clean_dir, "COVER_2013_Q2_Cleaned.csv"))
 combined_2013 = bind_rows(q2_data, merged_LA)
 fwrite(combined_2013, file.path(clean_dir, "COVER_2013_Q2_Q3_Cleaned.csv"))
-validate_cover_data(combined_2013, "2013/2014 Q2-Q3")
+
+# Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
+validate_cover_data(combined_2013, "2013/2014 Q2-Q3", valid_utlas_2019_to_2021)
 
 #### 🫧 2013 Q4 🫧 ####
 file_path = file.path(main_dir, "2013_Q4.xls")
@@ -381,9 +400,9 @@ merged_LA = aggregate_boundary_changes(merged_LA, "2013/2014")
 q3_data = fread(file.path(clean_dir, "COVER_2013_Q2_Q3_Cleaned.csv"))
 combined_2013 = bind_rows(q3_data, merged_LA)
 fwrite(combined_2013, file.path(clean_dir, "COVER_2013_Cleaned.csv"))
-validate_cover_data(combined_2013, "2013/2014 Full")
 
-
+# Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
+validate_cover_data(combined_2013, "2013/2014 Full", valid_utlas_2019_to_2021)
 
 #### ⋆˚࿔ 2 0 1 4 𝜗𝜚˚⋆ ####
 
@@ -428,7 +447,9 @@ merged_LA = aggregate_boundary_changes(merged_LA, "2014/2015")
 
 # Save Q1
 fwrite(merged_LA, file.path(clean_dir, "COVER_2014_Q1_Cleaned.csv"))
-validate_cover_data(merged_LA, "2014/2015 Q1")
+
+# Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
+validate_cover_data(merged_LA, "2014/2015 Q1", valid_utlas_2019_to_2021)
 
 #### 🫧 2014 Q2 🫧 ####
 file_path = file.path(main_dir, "2014_Q2.xlsx")
@@ -473,7 +494,9 @@ merged_LA = aggregate_boundary_changes(merged_LA, "2014/2015")
 q1_data = fread(file.path(clean_dir, "COVER_2014_Q1_Cleaned.csv"))
 combined_2014 = bind_rows(q1_data, merged_LA)
 fwrite(combined_2014, file.path(clean_dir, "COVER_2014_Q1_Q2_Cleaned.csv"))
-validate_cover_data(combined_2014, "2014/2015 Q1-Q2")
+
+# Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
+validate_cover_data(combined_2014, "2014/2015 Q1-Q2", valid_utlas_2019_to_2021)
 
 #### 🫧 2014 Q3 🫧 ####
 file_path = file.path(main_dir, "2014_Q3.xlsx")
@@ -518,7 +541,9 @@ merged_LA = aggregate_boundary_changes(merged_LA, "2014/2015")
 q2_data = fread(file.path(clean_dir, "COVER_2014_Q1_Q2_Cleaned.csv"))
 combined_2014 = bind_rows(q2_data, merged_LA)
 fwrite(combined_2014, file.path(clean_dir, "COVER_2014_Q1_Q2_Q3_Cleaned.csv"))
-validate_cover_data(combined_2014, "2014/2015 Q1-Q3")
+
+# Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
+validate_cover_data(combined_2014, "2014/2015 Q1-Q3", valid_utlas_2019_to_2021)
 
 #### 🫧 2014 Q4 🫧 ####
 file_path = file.path(main_dir, "2014_Q4.xlsx")
@@ -563,8 +588,9 @@ merged_LA = aggregate_boundary_changes(merged_LA, "2014/2015")
 q3_data = fread(file.path(clean_dir, "COVER_2014_Q1_Q2_Q3_Cleaned.csv"))
 combined_2014 = bind_rows(q3_data, merged_LA)
 fwrite(combined_2014, file.path(clean_dir, "COVER_2014_Cleaned.csv"))
-validate_cover_data(combined_2014, "2014/2015 Full")
 
+# Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
+validate_cover_data(combined_2014, "2014/2015 Full", valid_utlas_2019_to_2021)
 
 #### ⋆˚࿔ 2 0 1 5 𝜗𝜚˚ ⋆ ####
 
@@ -609,7 +635,9 @@ merged_LA = aggregate_boundary_changes(merged_LA, "2015/2016")
 
 # Save Q1
 fwrite(merged_LA, file.path(clean_dir, "COVER_2015_Q1_Cleaned.csv"))
-validate_cover_data(merged_LA, "2015/2016 Q1")
+
+# Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
+validate_cover_data(merged_LA, "2015/2016 Q1", valid_utlas_2019_to_2021)
 
 #### 🫧 2015 Q2 🫧 ####
 file_path = file.path(main_dir, "2015_Q2.xlsx")
@@ -654,7 +682,9 @@ merged_LA = aggregate_boundary_changes(merged_LA, "2015/2016")
 q1_data = fread(file.path(clean_dir, "COVER_2015_Q1_Cleaned.csv"))
 combined_2015 = bind_rows(q1_data, merged_LA)
 fwrite(combined_2015, file.path(clean_dir, "COVER_2015_Q1_Q2_Cleaned.csv"))
-validate_cover_data(combined_2015, "2015/2016 Q1-Q2")
+
+# Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
+validate_cover_data(combined_2015, "2015/2016 Q1-Q2", valid_utlas_2019_to_2021)
 
 #### 🫧 2015 Q3 🫧 ####
 file_path = file.path(main_dir, "2015_Q3.xlsx")
@@ -699,7 +729,9 @@ merged_LA = aggregate_boundary_changes(merged_LA, "2015/2016")
 q2_data = fread(file.path(clean_dir, "COVER_2015_Q1_Q2_Cleaned.csv"))
 combined_2015 = bind_rows(q2_data, merged_LA)
 fwrite(combined_2015, file.path(clean_dir, "COVER_2015_Q1_Q2_Q3_Cleaned.csv"))
-validate_cover_data(combined_2015, "2015/2016 Q1-Q3")
+
+# Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
+validate_cover_data(combined_2015, "2015/2016 Q1-Q3", valid_utlas_2019_to_2021)
 
 #### 🫧 2015 Q4 🫧 ####
 file_path = file.path(main_dir, "2015_Q4.xlsx")
@@ -744,14 +776,17 @@ merged_LA = aggregate_boundary_changes(merged_LA, "2015/2016")
 q3_data = fread(file.path(clean_dir, "COVER_2015_Q1_Q2_Q3_Cleaned.csv"))
 combined_2015 = bind_rows(q3_data, merged_LA)
 fwrite(combined_2015, file.path(clean_dir, "COVER_2015_Cleaned.csv"))
-validate_cover_data(combined_2015, "2015/2016 Full")
+
+# Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
+validate_cover_data(combined_2015, "2015/2016 Full", valid_utlas_2019_to_2021)
 
 #### 🫧 Final check for 2015 🫧 ####
 combined_2015 %>%
   group_by(Quarter) %>%
   summarise(Unique_UTLAs = n_distinct(ONS_Code))
 
-missing_utlas = setdiff(valid_utlas, combined_2015$ONS_Code)
+# List of ONS codes in final processed dataset should match the utla list from 2019 
+missing_utlas = setdiff(valid_utlas_2019_to_2021, combined_2015$ONS_Code)
 print(missing_utlas)
 
 utla_list %>% filter(UTLA_code %in% missing_utlas)
@@ -810,7 +845,9 @@ merged_LA = aggregate_boundary_changes(merged_LA, "2016/2017")
 
 # Save Q1
 fwrite(merged_LA, file.path(clean_dir, "COVER_2016_Q1_Cleaned.csv"))
-validate_cover_data(merged_LA, "2016/2017 Q1")
+
+# Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
+validate_cover_data(merged_LA, "2016/2017 Q1", valid_utlas_2019_to_2021)
 
 #### 🫧 2016 Q2 🫧 ####
 file_path = file.path(main_dir, "2016_Q2.xlsx")
@@ -870,7 +907,9 @@ merged_LA = aggregate_boundary_changes(merged_LA, "2016/2017")
 q1_data = fread(file.path(clean_dir, "COVER_2016_Q1_Cleaned.csv"))
 combined_2016 = bind_rows(q1_data, merged_LA)
 fwrite(combined_2016, file.path(clean_dir, "COVER_2016_Q1_Q2_Cleaned.csv"))
-validate_cover_data(combined_2016, "2016/2017 Q1-Q2")
+
+# Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
+validate_cover_data(combined_2016, "2016/2017 Q1-Q2", valid_utlas_2019_to_2021)
 
 #### 🫧 2016 Q3 🫧 ####
 file_path = file.path(main_dir, "2016_Q3.xlsx")
@@ -925,7 +964,9 @@ merged_LA = aggregate_boundary_changes(merged_LA, "2016/2017")
 q2_data = fread(file.path(clean_dir, "COVER_2016_Q1_Q2_Cleaned.csv"))
 combined_2016 = bind_rows(q2_data, merged_LA)
 fwrite(combined_2016, file.path(clean_dir, "COVER_2016_Q1_Q2_Q3_Cleaned.csv"))
-validate_cover_data(combined_2016, "2016/2017 Q1-Q3")
+
+# Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
+validate_cover_data(combined_2016, "2016/2017 Q1-Q3", valid_utlas_2019_to_2021)
 
 #### 🫧 2016 Q4 🫧 ####
 file_path = file.path(main_dir, "2016_Q4.xlsx")
@@ -980,14 +1021,17 @@ merged_LA = aggregate_boundary_changes(merged_LA, "2016/2017")
 q3_data = fread(file.path(clean_dir, "COVER_2016_Q1_Q2_Q3_Cleaned.csv"))
 combined_2016 = bind_rows(q3_data, merged_LA)
 fwrite(combined_2016, file.path(clean_dir, "COVER_2016_Cleaned.csv"))
-validate_cover_data(combined_2016, "2016/2017 Full")
+
+# Validation check: List of ONS codes in final processed dataset should match the utla list from 2019
+validate_cover_data(combined_2016, "2016/2017 Full", valid_utlas_2019_to_2021)
 
 #### 🫧 Final check for 2016 🫧 ####
 combined_2016 %>%
   group_by(Quarter) %>%
   summarise(Unique_UTLAs = n_distinct(ONS_Code))
 
-missing_utlas = setdiff(valid_utlas, combined_2016$ONS_Code)
+# List of ONS codes in final processed dataset should match the utla list from 2019 
+missing_utlas = setdiff(valid_utlas_2019_to_2021, combined_2016$ONS_Code)
 print(missing_utlas)
 
 utla_list %>% filter(UTLA_code %in% missing_utlas)
@@ -1050,7 +1094,9 @@ merged_LA = aggregate_boundary_changes(merged_LA, "2017/2018")
 
 # Save Q1
 fwrite(merged_LA, file.path(clean_dir, "COVER_2017_Q1_Cleaned.csv"))
-validate_cover_data(merged_LA, "2017/2018 Q1")
+
+# Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
+validate_cover_data(merged_LA, "2017/2018 Q1", valid_utlas_2019_to_2021)
 
 #### 🫧 2017 Q2 🫧 ####
 file_path = file.path(main_dir, "2017_Q2.xlsx")
@@ -1105,7 +1151,9 @@ merged_LA = aggregate_boundary_changes(merged_LA, "2017/2018")
 q1_data = fread(file.path(clean_dir, "COVER_2017_Q1_Cleaned.csv"))
 combined_2017 = bind_rows(q1_data, merged_LA)
 fwrite(combined_2017, file.path(clean_dir, "COVER_2017_Q1_Q2_Cleaned.csv"))
-validate_cover_data(combined_2017, "2017/2018 Q1-Q2")
+
+# Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
+validate_cover_data(combined_2017, "2017/2018 Q1-Q2", valid_utlas_2019_to_2021)
 
 #### 🫧 2017 Q3 🫧 ####
 file_path = file.path(main_dir, "2017_Q3.xlsx")
@@ -1160,7 +1208,9 @@ merged_LA = aggregate_boundary_changes(merged_LA, "2017/2018")
 q2_data = fread(file.path(clean_dir, "COVER_2017_Q1_Q2_Cleaned.csv"))
 combined_2017 = bind_rows(q2_data, merged_LA)
 fwrite(combined_2017, file.path(clean_dir, "COVER_2017_Q1_Q2_Q3_Cleaned.csv"))
-validate_cover_data(combined_2017, "2017/2018 Q1-Q3")
+
+# Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
+validate_cover_data(combined_2017, "2017/2018 Q1-Q3", valid_utlas_2019_to_2021)
 
 #### 🫧 2017 Q4 🫧 ####
 file_path = file.path(main_dir, "2017_Q4.xlsx")
@@ -1215,14 +1265,17 @@ merged_LA = aggregate_boundary_changes(merged_LA, "2017/2018")
 q3_data = fread(file.path(clean_dir, "COVER_2017_Q1_Q2_Q3_Cleaned.csv"))
 combined_2017 = bind_rows(q3_data, merged_LA)
 fwrite(combined_2017, file.path(clean_dir, "COVER_2017_Cleaned.csv"))
-validate_cover_data(combined_2017, "2017/2018 Full")
+
+# Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
+validate_cover_data(combined_2017, "2017/2018 Full", valid_utlas_2019_to_2021)
 
 #### 🫧 Final check for 2017 🫧 ####
 combined_2017 %>%
   group_by(Quarter) %>%
   summarise(Unique_UTLAs = n_distinct(ONS_Code))
 
-missing_utlas = setdiff(valid_utlas, combined_2017$ONS_Code)
+# List of ONS codes in final processed dataset should match the utla list from 2019 
+missing_utlas = setdiff(valid_utlas_2019_to_2021, combined_2017$ONS_Code)
 print(missing_utlas)
 
 utla_list %>% filter(UTLA_code %in% missing_utlas)
@@ -1281,7 +1334,9 @@ merged_LA = aggregate_boundary_changes(merged_LA, "2018/2019")
 
 # Save Q1
 fwrite(merged_LA, file.path(clean_dir, "COVER_2018_Q1_Cleaned.csv"))
-validate_cover_data(merged_LA, "2018/2019 Q1")
+
+# Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
+validate_cover_data(merged_LA, "2018/2019 Q1", valid_utlas_2019_to_2021)
 
 #### 🫧 2018 Q2 🫧 ####
 file_path = file.path(main_dir, "2018_Q2.xlsx")
@@ -1336,7 +1391,9 @@ merged_LA = aggregate_boundary_changes(merged_LA, "2018/2019")
 q1_data = fread(file.path(clean_dir, "COVER_2018_Q1_Cleaned.csv"))
 combined_2018 = bind_rows(q1_data, merged_LA)
 fwrite(combined_2018, file.path(clean_dir, "COVER_2018_Q1_Q2_Cleaned.csv"))
-validate_cover_data(combined_2018, "2018/2019 Q1-Q2")
+
+# Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
+validate_cover_data(combined_2018, "2018/2019 Q1-Q2", valid_utlas_2019_to_2021)
 
 #### 🫧 2018 Q3 🫧 ####
 file_path = file.path(main_dir, "2018_Q3.xlsx")
@@ -1391,7 +1448,9 @@ merged_LA = aggregate_boundary_changes(merged_LA, "2018/2019")
 q2_data = fread(file.path(clean_dir, "COVER_2018_Q1_Q2_Cleaned.csv"))
 combined_2018 = bind_rows(q2_data, merged_LA)
 fwrite(combined_2018, file.path(clean_dir, "COVER_2018_Q1_Q2_Q3_Cleaned.csv"))
-validate_cover_data(combined_2018, "2018/2019 Q1-Q3")
+
+# Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
+validate_cover_data(combined_2018, "2018/2019 Q1-Q3", valid_utlas_2019_to_2021)
 
 #### 🫧 2018 Q4 🫧 ####
 file_path = file.path(main_dir, "2018_Q4.xlsx")
@@ -1446,14 +1505,17 @@ merged_LA = aggregate_boundary_changes(merged_LA, "2018/2019")
 q3_data = fread(file.path(clean_dir, "COVER_2018_Q1_Q2_Q3_Cleaned.csv"))
 combined_2018 = bind_rows(q3_data, merged_LA)
 fwrite(combined_2018, file.path(clean_dir, "COVER_2018_Cleaned.csv"))
-validate_cover_data(combined_2018, "2018/2019 Full")
+
+# Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
+validate_cover_data(combined_2018, "2018/2019 Full", valid_utlas_2019_to_2021)
 
 #### 🫧 Final check for 2018 🫧 ####
 combined_2018 %>%
   group_by(Quarter) %>%
   summarise(Unique_UTLAs = n_distinct(ONS_Code))
 
-missing_utlas = setdiff(valid_utlas, combined_2018$ONS_Code)
+# List of ONS codes in final processed dataset should match the utla list from 2019 
+missing_utlas = setdiff(valid_utlas_2019_to_2021, combined_2018$ONS_Code)
 print(missing_utlas)
 
 utla_list %>% filter(UTLA_code %in% missing_utlas)
@@ -1497,7 +1559,7 @@ la24 = read_ods(file_path, sheet = "24m_UTLA_GOR") %>%
 # Join by both ONS_Code and UTLA_Name
 merged_LA = full_join(la12, la24, by = c("ONS_Code", "UTLA_Name")) %>%
   map_utla_codes_enhanced("2019/2020") %>%
-  filter(ONS_Code %in% valid_utlas) %>%
+  filter(ONS_Code %in% valid_utlas_2019_to_2021) %>%
   mutate(
     Year = "2019/2020",
     Quarter = "Q1",
@@ -1512,7 +1574,9 @@ merged_LA = aggregate_boundary_changes(merged_LA, "2019/2020")
 
 # Save Q1
 fwrite(merged_LA, file.path(clean_dir, "COVER_2019_Q1_Cleaned.csv"))
-validate_cover_data(merged_LA, "2019/2020 Q1")
+
+# Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
+validate_cover_data(merged_LA, "2019/2020 Q1", valid_utlas_2019_to_2021)
 
 #### 🫧 2019 Q2 🫧 ####
 file_path = file.path(main_dir, "2019_Q2.ods")
@@ -1550,7 +1614,7 @@ la24 = read_ods(file_path, sheet = "24m_UTLA_GOR") %>%
 # Join by both ONS_Code and UTLA_Name
 merged_LA = full_join(la12, la24, by = c("ONS_Code", "UTLA_Name")) %>%
   map_utla_codes_enhanced("2019/2020") %>%
-  filter(ONS_Code %in% valid_utlas) %>%
+  filter(ONS_Code %in% valid_utlas_2019_to_2021) %>%
   mutate(
     Year = "2019/2020",
     Quarter = "Q2",
@@ -1567,7 +1631,9 @@ merged_LA = aggregate_boundary_changes(merged_LA, "2019/2020")
 q1_data = fread(file.path(clean_dir, "COVER_2019_Q1_Cleaned.csv"))
 combined_2019 = bind_rows(q1_data, merged_LA)
 fwrite(combined_2019, file.path(clean_dir, "COVER_2019_Q1_Q2_Cleaned.csv"))
-validate_cover_data(combined_2019, "2019/2020 Q1-Q2")
+
+# Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
+validate_cover_data(combined_2019, "2019/2020 Q1-Q2", valid_utlas_2019_to_2021)
 
 #### 🫧 2019 Q3 🫧 ####
 file_path = file.path(main_dir, "2019_Q3.ods")
@@ -1605,7 +1671,7 @@ la24 = read_ods(file_path, sheet = "24m_UTLA_GOR") %>%
 # Join by both ONS_Code and UTLA_Name
 merged_LA = full_join(la12, la24, by = c("ONS_Code", "UTLA_Name")) %>%
   map_utla_codes_enhanced("2019/2020") %>%
-  filter(ONS_Code %in% valid_utlas) %>%
+  filter(ONS_Code %in% valid_utlas_2019_to_2021) %>%
   mutate(
     Year = "2019/2020",
     Quarter = "Q3",
@@ -1622,7 +1688,9 @@ merged_LA = aggregate_boundary_changes(merged_LA, "2019/2020")
 q2_data = fread(file.path(clean_dir, "COVER_2019_Q1_Q2_Cleaned.csv"))
 combined_2019 = bind_rows(q2_data, merged_LA)
 fwrite(combined_2019, file.path(clean_dir, "COVER_2019_Q1_Q2_Q3_Cleaned.csv"))
-validate_cover_data(combined_2019, "2019/2020 Q1-Q3")
+
+# Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
+validate_cover_data(combined_2019, "2019/2020 Q1-Q3", valid_utlas_2019_to_2021)
 
 #### 🫧 2019 Q4 🫧 ####
 file_path = file.path(main_dir, "2019_Q4.ods")
@@ -1677,14 +1745,17 @@ merged_LA = aggregate_boundary_changes(merged_LA, "2019/2020")
 q3_data = fread(file.path(clean_dir, "COVER_2019_Q1_Q2_Q3_Cleaned.csv"))
 combined_2019 = bind_rows(q3_data, merged_LA)
 fwrite(combined_2019, file.path(clean_dir, "COVER_2019_Cleaned.csv"))
-validate_cover_data(combined_2019, "2019/2020 Full")
+
+# Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
+validate_cover_data(combined_2019, "2019/2020 Full", valid_utlas_2019_to_2021)
 
 #### 🫧 Final check for 2019 🫧 ####
 combined_2019 %>%
   group_by(Quarter) %>%
   summarise(Unique_UTLAs = n_distinct(ONS_Code))
 
-missing_utlas = setdiff(valid_utlas, combined_2019$ONS_Code)
+# List of ONS codes in final processed dataset should match the utla list from 2019 
+missing_utlas = setdiff(valid_utlas_2019_to_2021, combined_2019$ONS_Code)
 print(missing_utlas)
 
 utla_list %>% filter(UTLA_code %in% missing_utlas)
@@ -1736,7 +1807,7 @@ la24 = read_ods(file_path, sheet = "24m_UTLA_GOR") %>%
 # Merge and process
 merged_LA = full_join(la12, la24, by = c("ONS_Code", "UTLA_Name")) %>%
   map_utla_codes_enhanced("2020/2021") %>%
-  filter(ONS_Code %in% valid_utlas) %>%
+  filter(ONS_Code %in% valid_utlas_2019_to_2021) %>%
   mutate(
     Year = "2020/2021",
     Quarter = "Q1",
@@ -1749,7 +1820,9 @@ merged_LA = full_join(la12, la24, by = c("ONS_Code", "UTLA_Name")) %>%
 # Apply boundary change aggregation
 merged_LA = aggregate_boundary_changes(merged_LA, "2020/2021")
 fwrite(merged_LA, file.path(clean_dir, "COVER_2020_Q1_Cleaned.csv"))
-validate_cover_data(merged_LA, "2020/2021 Q1")
+
+# Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
+validate_cover_data(merged_LA, "2020/2021 Q1", valid_utlas_2019_to_2021)
 
 #### 🫧 2020 Q2 🫧 ####
 file_path = file.path(main_dir, "2020 Q2.ods")
@@ -1784,7 +1857,7 @@ la24 = read_ods(file_path, sheet = "24m_UTLA_GOR") %>%
 
 merged_LA = full_join(la12, la24, by = c("ONS_Code", "UTLA_Name")) %>%
   map_utla_codes_enhanced("2020/2021") %>%
-  filter(ONS_Code %in% valid_utlas) %>%
+  filter(ONS_Code %in% valid_utlas_2019_to_2021) %>%
   mutate(
     Year = "2020/2021",
     Quarter = "Q2",
@@ -1798,7 +1871,9 @@ merged_LA = aggregate_boundary_changes(merged_LA, "2020/2021")
 q1_data = fread(file.path(clean_dir, "COVER_2020_Q1_Cleaned.csv"))
 combined_2020 = bind_rows(q1_data, merged_LA)
 fwrite(combined_2020, file.path(clean_dir, "COVER_2020_Q1_Q2_Cleaned.csv"))
-validate_cover_data(combined_2020, "2020/2021 Q1-Q2")
+
+# Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
+validate_cover_data(combined_2020, "2020/2021 Q1-Q2", valid_utlas_2019_to_2021)
 
 #### 🫧 2020 Q3 🫧 ####
 file_path = file.path(main_dir, "2020 Q3.ods")
@@ -1833,7 +1908,7 @@ la24 = read_ods(file_path, sheet = "24m_UTLA_GOR") %>%
 
 merged_LA = full_join(la12, la24, by = c("ONS_Code", "UTLA_Name")) %>%
   map_utla_codes_enhanced("2020/2021") %>%
-  filter(ONS_Code %in% valid_utlas) %>%
+  filter(ONS_Code %in% valid_utlas_2019_to_2021) %>%
   mutate(
     Year = "2020/2021",
     Quarter = "Q3",
@@ -1847,7 +1922,9 @@ merged_LA = aggregate_boundary_changes(merged_LA, "2020/2021")
 q2_data = fread(file.path(clean_dir, "COVER_2020_Q1_Q2_Cleaned.csv"))
 combined_2020 = bind_rows(q2_data, merged_LA)
 fwrite(combined_2020, file.path(clean_dir, "COVER_2020_Q1_Q2_Q3_Cleaned.csv"))
-validate_cover_data(combined_2020, "2020/2021 Q1-Q3")
+
+# Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
+validate_cover_data(combined_2020, "2020/2021 Q1-Q3", valid_utlas_2019_to_2021)
 
 #### 🫧 2020 Q4 🫧 ####
 file_path = file.path(main_dir, "2020 Q4.ods")
@@ -1882,7 +1959,7 @@ la24 = read_ods(file_path, sheet = "24m_UTLA_GOR") %>%
 
 merged_LA = full_join(la12, la24, by = c("ONS_Code", "UTLA_Name")) %>%
   map_utla_codes_enhanced("2020/2021") %>%
-  filter(ONS_Code %in% valid_utlas) %>%
+  filter(ONS_Code %in% valid_utlas_2019_to_2021) %>%
   mutate(
     Year = "2020/2021",
     Quarter = "Q4",
@@ -1896,14 +1973,17 @@ merged_LA = aggregate_boundary_changes(merged_LA, "2020/2021")
 q3_data = fread(file.path(clean_dir, "COVER_2020_Q1_Q2_Q3_Cleaned.csv"))
 combined_2020 = bind_rows(q3_data, merged_LA)
 fwrite(combined_2020, file.path(clean_dir, "COVER_2020_Cleaned.csv"))
-validate_cover_data(combined_2020, "2020/2021 Full")
+
+# Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
+validate_cover_data(combined_2020, "2020/2021 Full", valid_utlas_2019_to_2021)
 
 #### 🫧 Final check for 2020 🫧 ####
 combined_2020 %>%
   group_by(Quarter) %>%
   summarise(Unique_UTLAs = n_distinct(ONS_Code))
 
-missing_utlas = setdiff(valid_utlas, combined_2020$ONS_Code)
+# List of ONS codes in final processed dataset should match the utla list from 2019 
+missing_utlas = setdiff(valid_utlas_2019_to_2021, combined_2020$ONS_Code)
 print(missing_utlas)
 utla_list %>% filter(UTLA_code %in% missing_utlas)
 
@@ -1945,7 +2025,7 @@ la24 = read_ods(file_path, sheet = "24m_UTLA_GOR") %>%
 
 merged_LA = full_join(la12, la24, by = c("ONS_Code", "UTLA_Name")) %>%
   map_utla_codes_enhanced("2021/2022") %>%
-  filter(ONS_Code %in% valid_utlas) %>%
+  filter(ONS_Code %in% valid_utlas_from_2021_onwards) %>%
   mutate(
     Year = "2021/2022",
     Quarter = "Q1",
@@ -1957,7 +2037,9 @@ merged_LA = full_join(la12, la24, by = c("ONS_Code", "UTLA_Name")) %>%
 
 merged_LA = aggregate_boundary_changes(merged_LA, "2021/2022")
 fwrite(merged_LA, file.path(clean_dir, "COVER_2021_Q1_Cleaned.csv"))
-validate_cover_data(merged_LA, "2021/2022 Q1")
+
+# Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
+validate_cover_data(merged_LA, "2021/2022 Q1", valid_utlas_2019_to_2021)
 
 #### 🫧 2021 Q2 🫧 ####
 file_path = file.path(main_dir, "2021 Q2.ods")
@@ -2006,7 +2088,9 @@ merged_LA = aggregate_boundary_changes(merged_LA, "2021/2022")
 q1_data = fread(file.path(clean_dir, "COVER_2021_Q1_Cleaned.csv"))
 combined_2021 = bind_rows(q1_data, merged_LA)
 fwrite(combined_2021, file.path(clean_dir, "COVER_2021_Q1_Q2_Cleaned.csv"))
-validate_cover_data(combined_2021, "2021/2022 Q1-Q2")
+
+# Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
+validate_cover_data(combined_2021, "2021/2022 Q1-Q2", valid_utlas_2019_to_2021)
 
 #### 🫧 2021 Q3 🫧 ####
 file_path = file.path(main_dir, "2021 Q3.ods")
@@ -2055,7 +2139,9 @@ merged_LA = aggregate_boundary_changes(merged_LA, "2021/2022")
 q2_data = fread(file.path(clean_dir, "COVER_2021_Q1_Q2_Cleaned.csv"))
 combined_2021 = bind_rows(q2_data, merged_LA)
 fwrite(combined_2021, file.path(clean_dir, "COVER_2021_Q1_Q2_Q3_Cleaned.csv"))
-validate_cover_data(combined_2021, "2021/2022 Q1-Q3")
+
+# Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
+validate_cover_data(combined_2021, "2021/2022 Q1-Q3", valid_utlas_2019_to_2021)
 
 #### 🫧 2021 Q4 🫧 ####
 file_path = file.path(main_dir, "2021 Q4.ods")
@@ -2104,14 +2190,17 @@ merged_LA = aggregate_boundary_changes(merged_LA, "2021/2022")
 q3_data = fread(file.path(clean_dir, "COVER_2021_Q1_Q2_Q3_Cleaned.csv"))
 combined_2021 = bind_rows(q3_data, merged_LA)
 fwrite(combined_2021, file.path(clean_dir, "COVER_2021_Cleaned.csv"))
-validate_cover_data(combined_2021, "2021/2022 Full")
+
+# Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
+validate_cover_data(combined_2021, "2021/2022 Full", valid_utlas_2019_to_2021)
 
 #### 🫧 Final check for 2021 🫧 ####
 combined_2021 %>%
   group_by(Quarter) %>%
   summarise(Unique_UTLAs = n_distinct(ONS_Code))
 
-missing_utlas = setdiff(valid_utlas, combined_2021$ONS_Code)
+# List of ONS codes in final processed dataset should match the utla list from 2019 
+missing_utlas = setdiff(valid_utlas_2019_to_2021, combined_2021$ONS_Code)
 print(missing_utlas)
 utla_list %>% filter(UTLA_code %in% missing_utlas)
 
@@ -2165,7 +2254,9 @@ merged_LA = full_join(la12, la24, by = c("ONS_Code", "UTLA_Name")) %>%
 
 merged_LA = aggregate_boundary_changes(merged_LA, "2022/2023")
 fwrite(merged_LA, file.path(clean_dir, "COVER_2022_Q1_Cleaned.csv"))
-validate_cover_data(merged_LA, "2022/2023 Q1")
+
+# Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
+validate_cover_data(merged_LA, "2022/2023 Q1", valid_utlas_2019_to_2021)
 
 #### 🫧 2022 Q2 🫧 ####
 file_path = file.path(main_dir, "2022 Q2.ods")
@@ -2214,7 +2305,9 @@ merged_LA = aggregate_boundary_changes(merged_LA, "2022/2023")
 q1_data = fread(file.path(clean_dir, "COVER_2022_Q1_Cleaned.csv"))
 combined_2022 = bind_rows(q1_data, merged_LA)
 fwrite(combined_2022, file.path(clean_dir, "COVER_2022_Q1_Q2_Cleaned.csv"))
-validate_cover_data(combined_2022, "2022/2023 Q1-Q2")
+
+# Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
+validate_cover_data(combined_2022, "2022/2023 Q1-Q2", valid_utlas_2019_to_2021)
 
 #### 🫧 2022 Q3 🫧 ####
 file_path = file.path(main_dir, "2022 Q3.ods")
@@ -2263,7 +2356,9 @@ merged_LA = aggregate_boundary_changes(merged_LA, "2022/2023")
 q2_data = fread(file.path(clean_dir, "COVER_2022_Q1_Q2_Cleaned.csv"))
 combined_2022 = bind_rows(q2_data, merged_LA)
 fwrite(combined_2022, file.path(clean_dir, "COVER_2022_Q1_Q2_Q3_Cleaned.csv"))
-validate_cover_data(combined_2022, "2022/2023 Q1-Q3")
+
+# Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
+validate_cover_data(combined_2022, "2022/2023 Q1-Q3", valid_utlas_2019_to_2021)
 
 #### 🫧 2022 Q4 🫧 ####
 file_path = file.path(main_dir, "2022 Q4.ods")
@@ -2312,14 +2407,17 @@ merged_LA = aggregate_boundary_changes(merged_LA, "2022/2023")
 q3_data = fread(file.path(clean_dir, "COVER_2022_Q1_Q2_Q3_Cleaned.csv"))
 combined_2022 = bind_rows(q3_data, merged_LA)
 fwrite(combined_2022, file.path(clean_dir, "COVER_2022_Cleaned.csv"))
-validate_cover_data(combined_2022, "2022/2023 Full")
+
+# Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
+validate_cover_data(combined_2022, "2022/2023 Full", valid_utlas_2019_to_2021)
 
 #### 🫧 Final check for 2022 🫧 ####
 combined_2022 %>%
   group_by(Quarter) %>%
   summarise(Unique_UTLAs = n_distinct(ONS_Code))
 
-missing_utlas = setdiff(valid_utlas, combined_2022$ONS_Code)
+# List of ONS codes in final processed dataset should match the utla list from 2019 
+missing_utlas = setdiff(valid_utlas_2019_to_2021, combined_2022$ONS_Code)
 print(missing_utlas)
 utla_list %>% filter(UTLA_code %in% missing_utlas)
 
@@ -2373,7 +2471,9 @@ merged_LA = full_join(la12, la24, by = c("ONS_Code", "UTLA_Name")) %>%
 
 merged_LA = aggregate_boundary_changes(merged_LA, "2023/2024")
 fwrite(merged_LA, file.path(clean_dir, "COVER_2023_Q1_Cleaned.csv"))
-validate_cover_data(merged_LA, "2023/2024 Q1")
+
+# Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
+validate_cover_data(merged_LA, "2023/2024 Q1", valid_utlas_2019_to_2021)
 
 #### 🫧 2023 Q2 🫧 ####
 file_path = file.path(main_dir, "2023 Q2.ods")
@@ -2422,7 +2522,9 @@ merged_LA = aggregate_boundary_changes(merged_LA, "2023/2024")
 q1_data = fread(file.path(clean_dir, "COVER_2023_Q1_Cleaned.csv"))
 combined_2023 = bind_rows(q1_data, merged_LA)
 fwrite(combined_2023, file.path(clean_dir, "COVER_2023_Q1_Q2_Cleaned.csv"))
-validate_cover_data(combined_2023, "2023/2024 Q1-Q2")
+
+# Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
+validate_cover_data(combined_2023, "2023/2024 Q1-Q2", valid_utlas_2019_to_2021)
 
 #### 🫧 2023 Q3 🫧 ####
 file_path = file.path(main_dir, "2023 Q3.ods")
@@ -2471,7 +2573,9 @@ merged_LA = aggregate_boundary_changes(merged_LA, "2023/2024")
 q2_data = fread(file.path(clean_dir, "COVER_2023_Q1_Q2_Cleaned.csv"))
 combined_2023 = bind_rows(q2_data, merged_LA)
 fwrite(combined_2023, file.path(clean_dir, "COVER_2023_Q1_Q2_Q3_Cleaned.csv"))
-validate_cover_data(combined_2023, "2023/2024 Q1-Q3")
+
+# Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
+validate_cover_data(combined_2023, "2023/2024 Q1-Q3", valid_utlas_2019_to_2021)
 
 #### 🫧 2023 Q4 🫧 ####
 file_path = file.path(main_dir, "2023 Q4.ods")
@@ -2520,14 +2624,17 @@ merged_LA = aggregate_boundary_changes(merged_LA, "2023/2024")
 q3_data = fread(file.path(clean_dir, "COVER_2023_Q1_Q2_Q3_Cleaned.csv"))
 combined_2023 = bind_rows(q3_data, merged_LA)
 fwrite(combined_2023, file.path(clean_dir, "COVER_2023_Cleaned.csv"))
-validate_cover_data(combined_2023, "2023/2024 Full")
+
+# Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
+validate_cover_data(combined_2023, "2023/2024 Full", valid_utlas_2019_to_2021)
 
 #### 🫧 Final check for 2023 🫧 ####
 combined_2023 %>%
   group_by(Quarter) %>%
   summarise(Unique_UTLAs = n_distinct(ONS_Code))
 
-missing_utlas = setdiff(valid_utlas, combined_2023$ONS_Code)
+# List of ONS codes in final processed dataset should match the utla list from 2019 
+missing_utlas = setdiff(valid_utlas_2019_to_2021, combined_2023$ONS_Code)
 print(missing_utlas)
 utla_list %>% filter(UTLA_code %in% missing_utlas)
 
@@ -2581,7 +2688,9 @@ merged_LA = full_join(la12, la24, by = c("ONS_Code", "UTLA_Name")) %>%
 
 merged_LA = aggregate_boundary_changes(merged_LA, "2024/2025")
 fwrite(merged_LA, file.path(clean_dir, "COVER_2024_Q1_Cleaned.csv"))
-validate_cover_data(merged_LA, "2024/2025 Q1")
+
+# Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
+validate_cover_data(merged_LA, "2024/2025 Q1", valid_utlas_2019_to_2021)
 
 #### 🫧 2024 Q2 🫧 ####
 file_path = file.path(main_dir, "2024 Q2.ods")
@@ -2630,7 +2739,9 @@ merged_LA = aggregate_boundary_changes(merged_LA, "2024/2025")
 q1_data = fread(file.path(clean_dir, "COVER_2024_Q1_Cleaned.csv"))
 combined_2024 = bind_rows(q1_data, merged_LA)
 fwrite(combined_2024, file.path(clean_dir, "COVER_2024_Q1_Q2_Cleaned.csv"))
-validate_cover_data(combined_2024, "2024/2025 Q1-Q2")
+
+# Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
+validate_cover_data(combined_2024, "2024/2025 Q1-Q2", valid_utlas_2019_to_2021)
 
 #### 🫧 2024 Q3 🫧 ####
 file_path = file.path(main_dir, "2024 Q3.ods")
@@ -2679,14 +2790,17 @@ merged_LA = aggregate_boundary_changes(merged_LA, "2024/2025")
 q2_data = fread(file.path(clean_dir, "COVER_2024_Q1_Q2_Cleaned.csv"))
 combined_2024 = bind_rows(q2_data, merged_LA)
 fwrite(combined_2024, file.path(clean_dir, "COVER_2024_Cleaned.csv"))
-validate_cover_data(combined_2024, "2024/2025 Full")
+
+# Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
+validate_cover_data(combined_2024, "2024/2025 Full", valid_utlas_2019_to_2021)
 
 #### 🫧 Final Check for 2024 🫧 ####
 combined_2024 %>%
   group_by(Quarter) %>%
   summarise(Unique_UTLAs = n_distinct(ONS_Code))
 
-missing_utlas = setdiff(valid_utlas, combined_2024$ONS_Code)
+# List of ONS codes in final processed dataset should match the utla list from 2019 
+missing_utlas = setdiff(valid_utlas_2019_to_2021, combined_2024$ONS_Code)
 print(missing_utlas)
 utla_list %>% filter(UTLA_code %in% missing_utlas)
 
