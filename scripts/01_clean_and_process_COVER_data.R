@@ -20,7 +20,6 @@
 #
 # INPUTS: Raw COVER quarterly files, UTLA_summaries.xlsx
 # OUTPUTS: Cleaned CSV files
-
 #===============================================================================
 
 ####🫧 Loading and installing packages 🫧####
