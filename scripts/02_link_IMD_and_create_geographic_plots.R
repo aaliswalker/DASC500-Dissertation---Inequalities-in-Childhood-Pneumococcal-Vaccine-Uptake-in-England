@@ -9,12 +9,6 @@
 # - Merges COVER vaccine data with IMD quintile assignments
 # - Creates choropleth maps showing IMD quintile distributions across England
 #
-# MAJOR REVISIONS:
-# REMOVED ALL IMPUTATION - missing values preserved as NA
-# Uses boundary-change corrected data from script 01
-# Explicit Northamptonshire IMD verification
-# Transparent missing data reporting
-#
 # INPUTS: Boundary-corrected COVER files, UTLA_summaries.xlsx, shapefile data
 # OUTPUTS: COVER_All_Years_MERGED_WITH_IMD_NO_IMPUTATION.csv, IMD quintile maps
 #===============================================================================

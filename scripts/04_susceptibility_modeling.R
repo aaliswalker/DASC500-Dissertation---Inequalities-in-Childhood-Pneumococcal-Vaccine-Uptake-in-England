@@ -4,33 +4,25 @@
 # 
 # DESCRIPTION: 
 # - Implements susceptibility modeling using vaccine effectiveness estimates
-# - CORRECTED: Uses 1-year lag methodology (same birth cohorts over time)
-# - CORRECTED: Uses non-imputed, boundary-corrected data
+# - Uses 1-year lag methodology (same birth cohorts over time)
+# - Uses non-imputed, boundary-corrected data
 # - Calculates susceptibility by deprivation quintile and geographic area
 # - Compares baseline vs alternate vaccine effectiveness assumptions
 # - Generates susceptibility trend plots and geographic maps
 # - Performs validation analysis for individual local authorities
 #
-# CRITICAL CORRECTIONS IMPLEMENTED:
-# - Uses non-imputed data from Script 2 output
-# - Implements 1-year lag for susceptibility calculations
-# - p0 = unvaccinated (from lagged 12m data)
-# - p1 = primary only (lagged 12m - current 24m)
-# - p2 = fully protected (current 24m)
-# - Excludes 2013/2014 (insufficient lag data)
-#
 # MAIN SECTIONS:
 # - Vaccine effectiveness scenario definitions
-# - CORRECTED: 1-year lag susceptibility calculations by deprivation quintile
-# - CORRECTED: 1-year lag national level susceptibility calculations  
+# - 1-year lag susceptibility calculations by deprivation quintile
+# - 1-year lag national level susceptibility calculations  
 # - Geographic susceptibility mapping
 # - London inclusion/exclusion analysis
 # - Model validation and summary statistics
 #
 # INPUTS: 
-# - output/COVER_All_Years_MERGED_WITH_IMD_NO_IMPUTATION.csv (corrected data)
+# - output/COVER_All_Years_MERGED_WITH_IMD_NO_IMPUTATION.csv
 # - data/Shapefile/Local_Authority_(Upper_Tier)_IMD_2019_(WGS84).shp
-# OUTPUTS: Corrected susceptibility trend plots, geographic maps, validation statistics
+# OUTPUTS: Susceptibility trend plots, geographic maps, validation statistics
 #===============================================================================
 
 # =============================================================================
@@ -73,7 +65,7 @@ if (!file.exists(data_file)) {
 data_clean <- read.csv(data_file)
 
 cat("=== DATA VERIFICATION ===\n")
-cat("Using corrected dataset:", basename(data_file), "\n")
+cat("Using dataset:", basename(data_file), "\n")
 cat("Data range:", min(data_clean$Year, na.rm = TRUE), "to", max(data_clean$Year, na.rm = TRUE), "\n")
 cat("Total observations:", nrow(data_clean), "\n")
 cat("Missing 12m data:", sum(is.na(data_clean$PCV_12m)), "\n")
@@ -114,7 +106,7 @@ ve_scenarios <- list(
 # =============================================================================
 
 cat("\n=== IMPLEMENTING SUSCEPTIBILITY CALCULATION ===\n")
-cat("Methodology: 1-year lag for primary coverage (supervisor feedback)\n")
+cat("Methodology: 1-year lag for primary coverage\n")
 cat("- p0 = unvaccinated (from lagged 12m data)\n")
 cat("- p1 = primary only (lagged 12m - current 24m)\n")
 cat("- p2 = fully protected (current 24m)\n\n")
@@ -146,7 +138,7 @@ quarterly_deprivation_all_scenarios <- map_dfr(ve_scenarios, function(scenario) 
   data_clean_lagged %>%
     group_by(Year, Quarter, imd_quintile) %>%
     summarise(
-      # Calculate weighted average coverage using corrected methodology
+      # Calculate weighted average coverage
       PCV_12m_lag_pct = weighted.mean(PCV_12m_lag, Population_12m_lag, na.rm = TRUE),
       PCV_24m_pct = weighted.mean(PCV_24m, Population_24m, na.rm = TRUE),
       Population = sum(Population_12m_lag, na.rm = TRUE),  # Use lagged population for weighting
@@ -160,7 +152,7 @@ quarterly_deprivation_all_scenarios <- map_dfr(ve_scenarios, function(scenario) 
       PCV_24m_prop = pmax(0, pmin(1, PCV_24m_pct / 100)),
       
       # Calculate population proportions using 1-year lag methodology
-      p0 = 1 - PCV_12m_lag_prop,                                    # Unvaccinated (from lagged 12m)
+      p0 = 1 - pmax(PCV_12m_lag_prop, PCV_24m_prop),               # Unvaccinated (from larger of lagged 12m or current 24m)
       p1 = pmax(0, PCV_12m_lag_prop - PCV_24m_prop),               # Primary only (lagged 12m - current 24m)
       p2 = PCV_24m_prop,                                           # Fully protected (current 24m)
       
@@ -174,7 +166,7 @@ quarterly_deprivation_all_scenarios <- map_dfr(ve_scenarios, function(scenario) 
       ),
       VE_booster = scenario$ve_booster,
       
-      # CORRECTED: Calculate susceptibility using 1-year lag methodology
+      # Calculate susceptibility using 1-year lag methodology
       Susceptibility_prop = p0 + p1 * (1 - VE_primary) + p2 * (1 - VE_booster),
       Susceptibility_n = Susceptibility_prop * Population,
       
@@ -206,8 +198,8 @@ quarterly_schedule_all_scenarios <- map_dfr(ve_scenarios, function(scenario) {
       PCV_12m_lag_prop = pmax(0, pmin(1, PCV_12m_lag_pct / 100)),
       PCV_24m_prop = pmax(0, pmin(1, PCV_24m_pct / 100)),
       
-      # CORRECTED: Population proportions using 1-year lag
-      p0 = 1 - PCV_12m_lag_prop,                         # Unvaccinated 
+      # Population proportions using 1-year lag
+      p0 = 1 - pmax(PCV_12m_lag_prop, PCV_24m_prop),     # Unvaccinated (from larger of lagged 12m or current 24m)
       p1 = pmax(0, PCV_12m_lag_prop - PCV_24m_prop),     # Primary only 
       p2 = PCV_24m_prop,                                 # Fully protected 
       
@@ -221,7 +213,7 @@ quarterly_schedule_all_scenarios <- map_dfr(ve_scenarios, function(scenario) {
       ),
       VE_booster = scenario$ve_booster,
       
-      # CORRECTED: Susceptibility calculation using 1-year lag
+      # Susceptibility calculation using 1-year lag
       Susceptibility_prop = p0 + p1 * (1 - VE_primary) + p2 * (1 - VE_booster),
       Susceptibility_n = Susceptibility_prop * Population,
       
@@ -235,11 +227,11 @@ quarterly_schedule_all_scenarios <- map_dfr(ve_scenarios, function(scenario) {
 })
 
 # =============================================================================
-# GEOGRAPHIC DATA PREPARATION WITH CORRECTED METHODOLOGY
+# GEOGRAPHIC DATA PREPARATION
 # =============================================================================
 
 
-# Calculate geographic susceptibility using corrected methodology
+# Calculate geographic susceptibility
 la_susceptibility_all_scenarios <- map_dfr(ve_scenarios, function(scenario) {
   data_clean_lagged %>%
     group_by(Year, ONS_Code, utla_name) %>%
@@ -254,8 +246,8 @@ la_susceptibility_all_scenarios <- map_dfr(ve_scenarios, function(scenario) {
       PCV_12m_lag_prop = pmax(0, pmin(1, PCV_12m_lag_pct / 100)),
       PCV_24m_prop = pmax(0, pmin(1, PCV_24m_pct / 100)),
       
-      # CORRECTED: Population proportions using 1-year lag
-      p0 = 1 - PCV_12m_lag_prop,                         # Unvaccinated (lagged)
+      # Population proportions using 1-year lag
+      p0 = 1 - pmax(PCV_12m_lag_prop, PCV_24m_prop),     # Unvaccinated (from larger of lagged 12m or current 24m)
       p1 = pmax(0, PCV_12m_lag_prop - PCV_24m_prop),     # Primary only (lagged - current)
       p2 = PCV_24m_prop,                                 # Fully protected (current)
       
@@ -269,7 +261,7 @@ la_susceptibility_all_scenarios <- map_dfr(ve_scenarios, function(scenario) {
       ),
       VE_booster = scenario$ve_booster,
       
-      # CORRECTED: Susceptibility calculation using 1-year lag
+      # Susceptibility calculation using 1-year lag
       Susceptibility = p0 + p1 * (1 - VE_primary) + p2 * (1 - VE_booster),
       
       # Metadata
@@ -313,7 +305,7 @@ la_susceptibility_all_scenarios <- bind_rows(
 )
 
 # =============================================================================
-# FIGURE 4: SUSCEPTIBILITY TRENDS BY DEPRIVATION
+# SUSCEPTIBILITY TRENDS BY DEPRIVATION
 # =============================================================================
 
 # Prepare data for visualization
@@ -327,8 +319,8 @@ main_scenarios <- quarterly_deprivation_all_scenarios %>%
     )
   )
 
-# Create corrected susceptibility trend plot
-figure4_corrected <- ggplot(main_scenarios, aes(x = time_order, y = Susceptibility_prop)) +
+# Create susceptibility trend plot
+suscep_trend_plot <- ggplot(main_scenarios, aes(x = time_order, y = Susceptibility_prop)) +
   geom_line(
     aes(color = as.factor(imd_quintile)),
     linewidth = 1.8
@@ -373,10 +365,10 @@ figure4_corrected <- ggplot(main_scenarios, aes(x = time_order, y = Susceptibili
     plot.title = element_text(hjust = 0.5, size = 18, face = "bold")
   )
 
-print(figure4_corrected)
+print(suscep_trend_plot)
 
 # =============================================================================
-# FIGURE 5: GEOGRAPHIC SUSCEPTIBILITY MAPS
+# GEOGRAPHIC SUSCEPTIBILITY MAPS
 # =============================================================================
 
 # Prepare map data (baseline assumption only for main figure)
@@ -406,8 +398,8 @@ selected_years <- c("2019/2020", "2020/2021", "2021/2022")
 map_data_subset <- map_data_main %>%
   filter(Year %in% selected_years)
 
-# Create corrected geographic susceptibility map
-figure5_corrected <- ggplot(map_data_subset) +
+# Create geographic susceptibility map
+geographic_suscep_map <- ggplot(map_data_subset) +
   geom_sf(aes(fill = Susceptibility), color = "white", linewidth = 0.05) +
   scale_fill_viridis_c(
     name = "Proportion Susceptible",  
@@ -455,7 +447,7 @@ figure5_corrected <- ggplot(map_data_subset) +
     plot.title = element_text(hjust = 0.5, size = 12, face = "bold")
   )
 
-print(figure5_corrected)
+print(geographic_suscep_map)
 
 # Create alternate assumption map for supplementary materials
 map_data_alternate <- england_map %>%
@@ -474,7 +466,7 @@ map_data_alternate <- england_map %>%
   ) %>%
   filter(Year %in% selected_years)
 
-figure5_alternate_corrected <- ggplot(map_data_alternate) +
+alternate_geographic_suscep_map <- ggplot(map_data_alternate) +
   geom_sf(aes(fill = Susceptibility), color = "white", linewidth = 0.05) +
   scale_fill_viridis_c(
     name = "Proportion Susceptible",  
@@ -497,9 +489,9 @@ figure5_alternate_corrected <- ggplot(map_data_alternate) +
   ) +
   facet_wrap(~ Year_Schedule, ncol = 3) +
   labs(
-    # title = "CORRECTED Geographic Susceptibility - Alternate Assumption",
+    # title = "Geographic Susceptibility - Alternate Assumption",
     # subtitle = "Alternate assumption: 1+1 single dose VE = 76.1%",
-    # caption = "Central VE estimates | CORRECTED: Uses 1-year lag for primary coverage"
+    # caption = "Central VE estimates | Uses 1-year lag for primary coverage"
   ) +
   theme_void(base_size = 10) +
   theme(
@@ -522,30 +514,7 @@ figure5_alternate_corrected <- ggplot(map_data_alternate) +
     plot.title = element_text(hjust = 0.5, size = 12, face = "bold")
   )
 
-print(figure5_alternate_corrected)
-
-# =============================================================================
-# GENERATE UTLA LISTS BY QUINTILE
-# =============================================================================
-
-# Create clean list of LAs by IMD quintile
-la_by_quintile <- data_clean %>%
-  filter(Year == "2023/2024") %>%
-  select(utla_name, imd_quintile) %>%
-  distinct() %>%
-  arrange(imd_quintile, utla_name)
-
-# Print formatted lists for Supporting Information
-for(q in 1:5) {
-  cat("\n", "=================", "\n")
-  cat("IMD Quintile", q, if(q == 1) "(Least Deprived)" else if(q == 5) "(Most Deprived)", "\n")
-  cat("=================", "\n")
-  las <- la_by_quintile %>% 
-    filter(imd_quintile == q) %>% 
-    pull(utla_name) %>%
-    sort()
-  cat(paste(las, collapse = "\n"), "\n")
-}
+print(alternate_geographic_suscep_map)
 
 # =============================================================================
 # LONDON ANALYSIS - WITH AND WITHOUT LONDON
@@ -679,7 +648,7 @@ print(plot_24m_comparison)
 # =============================================================================
 
 # Calculate booster gaps using 1-year lag
-cat("\n=== CORRECTED BOOSTER GAP ANALYSIS WITH 1-YEAR LAG ===\n")
+cat("\n=== BOOSTER GAP ANALYSIS WITH 1-YEAR LAG ===\n")
 
 corrected_gaps_lagged <- data_clean_lagged %>%
   mutate(
@@ -739,9 +708,9 @@ print(scenario_summary_corrected)
 test_utla <- "Birmingham"
 
 cat("\n=== LOCAL AUTHORITY VALIDATION ===\n")
-cat("Testing corrected methodology for:", test_utla, "\n")
+cat("Testing methodology for:", test_utla, "\n")
 
-# Get Birmingham's corrected coverage data
+# Get Birmingham's coverage data
 birmingham_data_corrected <- data_clean_lagged %>%
   filter(utla_name == test_utla) %>%
   filter(Year %in% c("2018/2019", "2022/2023")) %>%
@@ -762,7 +731,7 @@ birmingham_data_corrected <- data_clean_lagged %>%
 cat(" coverage data for", test_utla, ":\n")
 print(birmingham_data_corrected)
 
-# Manual calculation for 2+1 period using corrected methodology
+# Manual calculation for 2+1 period using methodology
 bham_2plus1_12m_lag <- birmingham_data_corrected$PCV_12m_lag_avg[birmingham_data_corrected$schedule_period == "2+1 (2018/19)"]
 bham_2plus1_24m <- birmingham_data_corrected$PCV_24m_avg[birmingham_data_corrected$schedule_period == "2+1 (2018/19)"]
 
@@ -777,7 +746,7 @@ if(length(bham_2plus1_12m_lag) > 0) {
   VE_booster <- 0.782
   susceptibility_2plus1_corrected <- p0_2plus1_corrected + p1_2plus1_corrected * (1 - VE_2plus1_primary) + p2_2plus1_corrected * (1 - VE_booster)
   
-  cat("\nCORRECTED 2+1 schedule susceptibility for", test_utla, ":", round(susceptibility_2plus1_corrected*100, 1), "%\n")
+  cat("\n2+1 schedule susceptibility for", test_utla, ":", round(susceptibility_2plus1_corrected*100, 1), "%\n")
 }
 
 # Manual calculation for 1+1 period 
@@ -808,5 +777,4 @@ if(length(bham_1plus1_12m_lag) > 0) {
     cat(" difference from 2+1 (alternate):", sprintf("%+.1f", (susceptibility_1plus1_alternate_corrected - susceptibility_2plus1_corrected)*100), "pp\n")
   }
 }
-
 
