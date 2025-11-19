@@ -761,6 +761,13 @@ post_iqr <- IQR(post_dropoff_data$dropoff_pct, na.rm = TRUE)
 post_q3 <- quantile(post_dropoff_data$dropoff_pct, 0.75, na.rm = TRUE)
 post_outlier_threshold <- post_q3 + 1.5 * post_iqr
 
+# Calculate max y-value across both periods for consistent scaling
+max_y_pre <- max(ggplot_build(ggplot(pre_dropoff_data, aes(x = dropoff_pct)) + 
+                                geom_histogram(binwidth = 1))$data[[1]]$count)
+max_y_post <- max(ggplot_build(ggplot(post_dropoff_data, aes(x = dropoff_pct)) + 
+                                 geom_histogram(binwidth = 1))$data[[1]]$count)
+max_y <- max(max_y_pre, max_y_post)
+
 # Create the comparison histogram
 ggplot(combined_dropoff_data, aes(x = dropoff_pct)) +
   geom_histogram(
@@ -782,6 +789,9 @@ ggplot(combined_dropoff_data, aes(x = dropoff_pct)) +
   # Reference line at zero for both panels
   geom_vline(xintercept = 0, linetype = "dashed", color = "grey40", linewidth = 1) +
   
+  # Y-axis reference line to emphasize distribution height
+  geom_hline(yintercept = 0, color = "black", linewidth = 0.5) +
+  
   # Outlier region shading (different for each panel)
   geom_rect(data = data.frame(period = "1. Pre-Schedule Change (2+1)", 
                               xmin = pre_outlier_threshold, 
@@ -800,8 +810,8 @@ ggplot(combined_dropoff_data, aes(x = dropoff_pct)) +
            label = "Perfect retention", 
            color = "grey40", hjust = 0, vjust = 1.1, size = 3) +
   
-  # Facet by time period
-  facet_wrap(~ period, ncol = 2) +
+  # Facet by time period with free y-scales to ensure both axes are visible
+  facet_wrap(~ period, ncol = 2, scales = "free_y") +
   
   labs(
     x = "Booster Drop-off (12m[previous year] - 24m coverage, percentage points)",
@@ -820,15 +830,22 @@ ggplot(combined_dropoff_data, aes(x = dropoff_pct)) +
     panel.grid.major.x = element_blank(),
     panel.grid.minor = element_blank(),
     strip.text = element_text(face = "bold", size = 11),
-    plot.caption = element_text(hjust = 0.5, size = 10, margin = margin(t = 10))
+    plot.caption = element_text(hjust = 0.5, size = 10, margin = margin(t = 10)),
+    axis.line.y = element_line(color = "black", linewidth = 0.5),
+    axis.line.x = element_line(color = "black", linewidth = 0.5),
+    panel.grid.major.y = element_line(color = "grey90", linewidth = 0.3)
   ) +
   
   scale_x_continuous(
     breaks = seq(-5, 25, by = 5),
     minor_breaks = seq(-5, 25, by = 1),
     limits = c(-2, max(combined_dropoff_data$dropoff_pct) + 1)
+  ) +
+  
+  # Ensure y-axis starts at 0 for both panels
+  scale_y_continuous(
+    expand = expansion(mult = c(0, 0.05)) 
   )
-
 # Print summary statistics for booster gap with 1-year lag
 cat("\n=== BOOSTER DROP-OFF DISTRIBUTION WITH 1-YEAR LAG ===\n")
 cat("PRE-Schedule Change (2+1):\n")
