@@ -3,37 +3,47 @@
 # PURPOSE: Generate descriptive statistics and visualizations for PCV uptake patterns by deprivation
 # 
 # DESCRIPTION: 
+# - Uses boundary-corrected, non-imputed data from Scripts 1 & 2
 # - Calculates national coverage statistics by schedule period (2+1 vs 1+1)
 # - Analyzes vaccine uptake patterns across deprivation quintiles
-# - Creates time trend visualizations showing inequalities
-# - Generates booster retention analysis (scatterplots and histograms)
 # - Produces WHO target achievement summaries
-#
-# MAIN SECTIONS:
-# - Dataset characteristics and national coverage summary
-# - Coverage analysis by deprivation quintile
-# - Time trend visualizations (12m and 24m uptake)
-# - Booster retention analysis (pre vs post schedule change)
-# - WHO target achievement analysis
+# - Generates booster retention analysis with 1-year lag (primary from previous year)
+# - Creates time trend visualizations showing inequalities
 #
 # INPUTS: 
-# - cleaned_Data/COVER_All_Years_MERGED_WITH_IMD.csv
-# - data/ (folder containing shapefiles)
+# - output/COVER_All_Years_MERGED_WITH_IMD_NO_IMPUTATION.csv
+# - output/COVER_Booster_Gap_1YearLag.csv (if available)
 # OUTPUTS: Summary statistics, trend plots, retention analysis plots
 #===============================================================================
 
 library("readxl")
-library("readr")
-library("dplyr")
-library("ggplot2")
+library("readr") 
 library("RColorBrewer")
-library("tidyr")
 library("ggrepel")
-library ("tidyverse")
+library("tidyverse") 
 library("here")
 
-# Read the cleaned and merged dataset 
-data = read.csv(here("cleaned_Data", "COVER_All_Years_MERGED_WITH_IMD.csv"))
+# Set working directory and paths
+data_file <- here("output", "COVER_All_Years_MERGED_WITH_IMD_NO_IMPUTATION.csv")
+
+if (!file.exists(data_file)) {
+  stop("Boundary-corrected merged data not found. Please run Script 02 first.")
+}
+
+data <- read.csv(data_file)
+
+# Convert columns to appropriate types
+data <- data %>%
+  mutate(
+    PCV_12m = as.numeric(PCV_12m),
+    PCV_24m = as.numeric(PCV_24m),
+    Population_12m = as.numeric(Population_12m),
+    Population_24m = as.numeric(Population_24m),
+    Timepoint = as.factor(Timepoint),
+    Quarter = as.factor(Quarter),
+    Vaccine_Schedule = as.factor(Vaccine_Schedule),
+    imd_quintile = as.factor(imd_quintile)
+  )
 
 #### Dataset Characteristics and National Coverage ####
 
@@ -43,6 +53,20 @@ cat("Analysis period:", min(data$Year, na.rm = TRUE), "to", max(data$Year, na.rm
 cat("Number of UTLAs included:", length(unique(data$utla_name)), "\n")
 cat("Number of quarters analyzed:", length(unique(paste(data$Year, data$Quarter))), "\n")
 cat("Total observations:", nrow(data), "\n\n")
+
+# Verify boundary changes are properly included
+boundary_check <- data %>%
+  filter(utla_name %in% c("Bournemouth, Christchurch and Poole", "Northamptonshire")) %>%
+  group_by(utla_name, Year) %>%
+  summarise(
+    Quarters = n_distinct(Quarter),
+    Has_12m_Data = any(!is.na(PCV_12m)),
+    Has_24m_Data = any(!is.na(PCV_24m)),
+    .groups = "drop"
+  )
+
+cat("=== BOUNDARY CHANGE VERIFICATION ===\n")
+print(boundary_check)
 
 # Calculate total population covered (sum of all eligible populations)
 total_12m_population <- sum(data$Population_12m, na.rm = TRUE)
@@ -60,9 +84,9 @@ national_booster_gap <- weighted_12m_coverage - weighted_24m_coverage
 cat("\n=== NATIONAL COVERAGE (ENTIRE STUDY PERIOD) ===\n")
 cat("Overall 12-month PCV coverage:", round(weighted_12m_coverage, 1), "%\n")
 cat("Overall 24-month PCV coverage:", round(weighted_24m_coverage, 1), "%\n")
-cat("Overall booster gap:", round(national_booster_gap, 1), "percentage points\n\n")
+cat("Overall booster gap (concurrent):", round(national_booster_gap, 1), "percentage points\n\n")
 
-# Coverage by schedule period
+# Coverage by schedule period (using original definitions for overall coverage)
 pre_schedule <- data %>% filter(Year < "2020/2021")
 post_schedule <- data %>% filter(Year >= "2020/2021")
 
@@ -119,10 +143,7 @@ cat("• 12-month coverage:", quarters_above_95_12m, "out of", total_observation
 cat("• 24-month coverage:", quarters_above_95_24m, "out of", total_observations, 
     "(", round(100 * quarters_above_95_24m / total_observations, 1), "%)\n\n")
 
-# ============================================
-# WHO TARGET ACHIEVEMENT BY SCHEDULE PERIOD
-# ============================================
-
+# WHO target achievement by schedule period
 cat("\n=== WHO TARGET ACHIEVEMENT BY SCHEDULE PERIOD ===\n")
 
 # Pre-schedule period (2+1)
@@ -155,21 +176,116 @@ cat("CHANGES:\n")
 cat("• 12-month target achievement changed by:", round(change_12m, 1), "pp\n")
 cat("• 24-month target achievement changed by:", round(change_24m, 1), "pp\n")
 
-# Missing data summary
+# Missing data summary (transparent reporting - no imputation)
 missing_12m <- sum(is.na(data$PCV_12m))
 missing_24m <- sum(is.na(data$PCV_24m))
 
-cat("=== DATA COMPLETENESS ===\n")
+cat("=== DATA COMPLETENESS (NO IMPUTATION) ===\n")
 cat("Missing 12-month coverage data:", missing_12m, "observations (", 
     round(100 * missing_12m / nrow(data), 1), "%)\n")
 cat("Missing 24-month coverage data:", missing_24m, "observations (", 
     round(100 * missing_24m / nrow(data), 1), "%)\n")
 
 #######################################
+#### BOOSTER GAP ANALYSIS
+#######################################
+
+cat("\n=== BOOSTER GAP ANALYSIS WITH 1-YEAR LAG ===\n")
+
+# Try to load pre-calculated booster gap data from Script 01
+cleaned_data_dir <- here("data/cleaned") 
+booster_gap_file <- file.path(cleaned_data_dir, "COVER_Booster_Gap_1YearLag.csv")
+
+if (file.exists(booster_gap_file)) {
+  cat("Loading pre-calculated booster gap data with 1-year lag\n")
+  booster_gap_data <- read.csv(booster_gap_file)
+  
+  # Convert columns
+  booster_gap_data <- booster_gap_data %>%
+    mutate(
+      PCV_12m_lag = as.numeric(PCV_12m_lag),
+      PCV_24m = as.numeric(PCV_24m),
+      Booster_Gap = as.numeric(Booster_Gap),
+      Susceptible = as.numeric(Susceptible),
+      Only_Primary = as.numeric(Only_Primary),
+      Fully_Protected = as.numeric(Fully_Protected)
+    )
+  
+} else {
+  cat("Calculating booster gap with 1-year lag...\n")
+  
+  # Create primary uptake with 1-year lag
+  primary_lag <- data %>%
+    mutate(Year_lag = case_when(
+      Year == "2013/2014" ~ "2014/2015",
+      Year == "2014/2015" ~ "2015/2016", 
+      Year == "2015/2016" ~ "2016/2017",
+      Year == "2016/2017" ~ "2017/2018",
+      Year == "2017/2018" ~ "2018/2019",
+      Year == "2018/2019" ~ "2019/2020",
+      Year == "2020/2021" ~ "2021/2022",
+      Year == "2021/2022" ~ "2022/2023",
+      Year == "2022/2023" ~ "2023/2024",
+      Year == "2023/2024" ~ "2024/2025",
+      TRUE ~ NA_character_
+    )) %>%
+    select(ONS_Code, UTLA_Name, Year_lag, Quarter, PCV_12m_lag = PCV_12m, Population_12m_lag = Population_12m) %>%
+    filter(!is.na(Year_lag))
+  
+  # Join with current booster data and calculate gap
+  booster_gap_data <- data %>%
+    inner_join(primary_lag, by = c("ONS_Code", "UTLA_Name", "Year" = "Year_lag", "Quarter")) %>%
+    mutate(
+      Booster_Gap = PCV_12m_lag - PCV_24m,
+      Susceptible = 100 - PCV_12m_lag,
+      Only_Primary = Booster_Gap,
+      Fully_Protected = PCV_24m
+    ) %>%
+    filter(!is.na(Booster_Gap)) %>%
+    select(ONS_Code, UTLA_Name, Year, Quarter, Timepoint, Vaccine_Schedule, imd_quintile, utla_name,
+           Population_12m_lag, Population_24m, 
+           PCV_12m_lag, PCV_24m, Booster_Gap, Susceptible, Only_Primary, Fully_Protected)
+}
+
+# Report booster gap analysis periods
+cat("Booster gap analysis periods (with 1-year lag):\n")
+cat("Available years:", paste(unique(booster_gap_data$Year), collapse = ", "), "\n")
+
+# Adjusted schedule periods for booster gap analysis
+pre_schedule_gap <- booster_gap_data %>% filter(Year %in% c("2014/2015", "2015/2016", "2016/2017", 
+                                                            "2017/2018", "2018/2019", "2019/2020"))
+post_schedule_gap <- booster_gap_data %>% filter(Year %in% c("2021/2022", "2022/2023", "2023/2024", "2024/2025"))
+
+cat("PRE-schedule booster gap analysis: 2014/2015 - 2019/2020 (2+1 schedule)\n")
+cat("POST-schedule booster gap analysis: 2021/2022 - 2024/2025 (1+1 schedule)\n")
+cat("EXCLUDED: 2013/2014 (insufficient lag data), 2020/2021 (mixed schedule period)\n\n")
+
+# Booster gap summary statistics
+pre_gap_mean <- weighted.mean(pre_schedule_gap$Booster_Gap, pre_schedule_gap$Population_12m_lag, na.rm = TRUE)
+pre_gap_median <- median(pre_schedule_gap$Booster_Gap, na.rm = TRUE)
+
+post_gap_mean <- weighted.mean(post_schedule_gap$Booster_Gap, post_schedule_gap$Population_12m_lag, na.rm = TRUE)
+post_gap_median <- median(post_schedule_gap$Booster_Gap, na.rm = TRUE)
+
+gap_change <- post_gap_mean - pre_gap_mean
+
+cat("=== BOOSTER GAP WITH 1-YEAR LAG ===\n")
+cat("PRE-Schedule Change (2+1):\n")
+cat("• Mean booster gap:", round(pre_gap_mean, 2), "percentage points\n")
+cat("• Median booster gap:", round(pre_gap_median, 2), "percentage points\n\n")
+
+cat("POST-Schedule Change (1+1):\n")
+cat("• Mean booster gap:", round(post_gap_mean, 2), "percentage points\n")
+cat("• Median booster gap:", round(post_gap_median, 2), "percentage points\n\n")
+
+cat("CHANGE: Booster gap changed by", round(gap_change, 2), "percentage points after schedule change\n")
+
+#######################################
+#### VISUALIZATIONS ####
 #######################################
 
 #### Colour palette ####
-pastel_palette = c(
+pastel_palette <- c(
   "#88CCEE", 
   "#CC6677",  
   "#117733", 
@@ -180,12 +296,11 @@ pastel_palette = c(
 )
 
 ############################################
+#### Time Trend Visualizations ####
 ############################################
 
-#### 🫧 Descriptive #### 
-
-# ---- Summarise and prepare ----
-overall_trend_both = data %>%
+# ---- Overall time trends ----
+overall_trend_both <- data %>%
   group_by(Year, Quarter) %>%
   summarise(
     PCV_12m = mean(PCV_12m, na.rm = TRUE),
@@ -231,25 +346,25 @@ target_line <- target_line[, c("Quarter_Label", "Quarter_ID", "Uptake", "Timepoi
 plot_data <- rbind(overall_trend_long, target_line)
 
 # ---- Plot settings ----
-schedule_quarter = "2020/2021 Q1"
-change_point = which(levels(plot_data$Quarter_Label) == schedule_quarter)
-covid_start = which(levels(plot_data$Quarter_Label) == "2020/2021 Q1")
-covid_end = which(levels(plot_data$Quarter_Label) == "2021/2022 Q4")
+schedule_quarter <- "2020/2021 Q1"
+change_point <- which(levels(plot_data$Quarter_Label) == schedule_quarter)
+covid_start <- which(levels(plot_data$Quarter_Label) == "2020/2021 Q1")
+covid_end <- which(levels(plot_data$Quarter_Label) == "2021/2022 Q4")
 
 # Define a soft pastel palette for this plot
-line_colours = c(
+line_colours <- c(
   "12 months" = "#AA4499",          
   "24 months" = "#332288",           
   "Expected uptake (95%)" = "#88CCEE" 
 )
 
-line_types = c(
+line_types <- c(
   "12 months" = "solid",
   "24 months" = "solid",
   "Expected uptake (95%)" = "dotdash"
 )
 
-# Final Plot
+# Final Plot - Overall Time Trends
 ggplot(plot_data, aes(x = Quarter_Label, y = Uptake,
                       color = Timepoint, linetype = Timepoint, group = Timepoint)) +
   # Shaded COVID-19 area
@@ -286,7 +401,6 @@ ggplot(plot_data, aes(x = Quarter_Label, y = Uptake,
   
   # Labels and theme
   labs(
-    # title = "PCV Uptake at 12 and 24 Months Over Time (with COVID and Schedule Annotations)",
     x = "Time (Year - Quarter)",
     y = "Mean PCV Uptake (%)",
     color = "Timepoint",
@@ -302,7 +416,7 @@ ggplot(plot_data, aes(x = Quarter_Label, y = Uptake,
 #### Uptake by quintile at 12m ####
 
 # Calculate deprivation trend
-pcv_trend = data %>%
+pcv_trend <- data %>%
   group_by(Year, Quarter, imd_quintile) %>%
   summarise(mean_PCV_12m = mean(PCV_12m, na.rm = TRUE), .groups = "drop") %>%
   arrange(Year, Quarter, imd_quintile) %>%
@@ -312,9 +426,9 @@ pcv_trend = data %>%
   )
 
 # Set key time points
-change_point = which(levels(pcv_trend$Quarter_Label) == "2020/2021 Q1")
-covid_start = change_point
-covid_end = which(levels(pcv_trend$Quarter_Label) == "2021/2022 Q4")
+change_point <- which(levels(pcv_trend$Quarter_Label) == "2020/2021 Q1")
+covid_start <- change_point
+covid_end <- which(levels(pcv_trend$Quarter_Label) == "2021/2022 Q4")
 
 # Plot
 ggplot(pcv_trend, aes(x = Quarter_Label, y = mean_PCV_12m, 
@@ -348,7 +462,6 @@ ggplot(pcv_trend, aes(x = Quarter_Label, y = mean_PCV_12m,
   ) +
   scale_y_continuous(limits = c(80, 100), breaks = seq(80, 100, 5)) +
   labs(
-    # title = "PCV Uptake at 12 Months by Deprivation Quintile (with COVID and Schedule Annotations)",
     x = "Time (Year - Quarter)",
     y = "Mean PCV 12m Uptake (%)"
   ) +
@@ -362,7 +475,7 @@ ggplot(pcv_trend, aes(x = Quarter_Label, y = mean_PCV_12m,
 #### Uptake by quintile at 24m ####
 
 # Calculate deprivation trend
-pcv_trend_24m = data %>%
+pcv_trend_24m <- data %>%
   group_by(Year, Quarter, imd_quintile) %>%
   summarise(mean_PCV_24m = mean(PCV_24m, na.rm = TRUE), .groups = "drop") %>%
   arrange(Year, Quarter, imd_quintile) %>%
@@ -372,9 +485,9 @@ pcv_trend_24m = data %>%
   )
 
 # Schedule + COVID windows
-change_point_24m = which(levels(pcv_trend_24m$Quarter_Label) == "2020/2021 Q1")
-covid_start = change_point_24m
-covid_end = which(levels(pcv_trend_24m$Quarter_Label) == "2021/2022 Q4")
+change_point_24m <- which(levels(pcv_trend_24m$Quarter_Label) == "2020/2021 Q1")
+covid_start <- change_point_24m
+covid_end <- which(levels(pcv_trend_24m$Quarter_Label) == "2021/2022 Q4")
 
 # Plot
 ggplot(pcv_trend_24m, aes(x = Quarter_Label, y = mean_PCV_24m,
@@ -414,7 +527,6 @@ ggplot(pcv_trend_24m, aes(x = Quarter_Label, y = mean_PCV_24m,
   ) +
   scale_y_continuous(limits = c(80, 100), breaks = seq(80, 100, 5)) +
   labs(
-    # title = "PCV Uptake at 24 Months by Deprivation Quintile (with COVID and Schedule Annotations)",
     x = "Time (Year - Quarter)",
     y = "Mean PCV 24m Uptake (%)"
   ) +
@@ -425,21 +537,21 @@ ggplot(pcv_trend_24m, aes(x = Quarter_Label, y = mean_PCV_24m,
     legend.position = "top"
   )
 
-#### FACET ####
+#### FACET - Combined 12m and 24m trends ####
 # Prepare 12m data
-pcv_trend_12m = data %>%
+pcv_trend_12m <- data %>%
   group_by(Year, Quarter, imd_quintile) %>%
   summarise(mean_PCV = mean(PCV_12m, na.rm = TRUE), .groups = "drop") %>%
   mutate(Timepoint = "12 months")
 
 # Prepare 24m data
-pcv_trend_24m = data %>%
+pcv_trend_24m <- data %>%
   group_by(Year, Quarter, imd_quintile) %>%
   summarise(mean_PCV = mean(PCV_24m, na.rm = TRUE), .groups = "drop") %>%
   mutate(Timepoint = "24 months")
 
 # Combine for faceting
-pcv_combined = bind_rows(pcv_trend_12m, pcv_trend_24m) %>%
+pcv_combined <- bind_rows(pcv_trend_12m, pcv_trend_24m) %>%
   arrange(Year, Quarter, imd_quintile) %>%
   mutate(
     Quarter_Label = paste(Year, Quarter, sep = " "),
@@ -447,9 +559,9 @@ pcv_combined = bind_rows(pcv_trend_12m, pcv_trend_24m) %>%
   )
 
 # Key time points
-change_point = which(levels(pcv_combined$Quarter_Label) == "2020/2021 Q1")
-covid_start = change_point
-covid_end = which(levels(pcv_combined$Quarter_Label) == "2021/2022 Q4")
+change_point <- which(levels(pcv_combined$Quarter_Label) == "2020/2021 Q1")
+covid_start <- change_point
+covid_end <- which(levels(pcv_combined$Quarter_Label) == "2021/2022 Q4")
 
 # Plot with facet_wrap
 ggplot(pcv_combined, aes(x = Quarter_Label, y = mean_PCV,
@@ -479,38 +591,37 @@ ggplot(pcv_combined, aes(x = Quarter_Label, y = mean_PCV,
   facet_wrap(~Timepoint, ncol = 1)
 
 ############################################
+#### BOOSTER RETENTION ANALYSIS ####
 ############################################
 
-#### Gap Scatterplot: Pre vs Post Schedule Change####
+#### Gap Scatterplot: Pre vs Post Schedule Change (with 1-year lag) ####
 
-# Pre-schedule change (2+1 schedule: before 2020/2021)
-pre_schedule_data <- data %>%
-  filter(Year < "2020/2021") %>%
+# Pre-schedule change (2+1 schedule: 2014/2015-2019/2020)
+pre_schedule_gap_avg <- pre_schedule_gap %>%
   group_by(utla_name, imd_quintile) %>%
   summarise(
-    PCV_12m = mean(PCV_12m, na.rm = TRUE),
+    PCV_12m_lag = mean(PCV_12m_lag, na.rm = TRUE),
     PCV_24m = mean(PCV_24m, na.rm = TRUE),
-    gap = PCV_12m - PCV_24m,
+    gap = mean(Booster_Gap, na.rm = TRUE),
     .groups = "drop"
   ) %>%
   mutate(period = "1. Pre-Schedule Change (2+1)")
 
-# Post-schedule change (1+1 schedule: 2020/2021 onwards)
-post_schedule_data <- data %>%
-  filter(Year >= "2020/2021") %>%
+# Post-schedule change (1+1 schedule: 2021/2022-2024/2025)
+post_schedule_gap_avg <- post_schedule_gap %>%
   group_by(utla_name, imd_quintile) %>%
   summarise(
-    PCV_12m = mean(PCV_12m, na.rm = TRUE),
+    PCV_12m_lag = mean(PCV_12m_lag, na.rm = TRUE),
     PCV_24m = mean(PCV_24m, na.rm = TRUE),
-    gap = PCV_12m - PCV_24m,
+    gap = mean(Booster_Gap, na.rm = TRUE),
     .groups = "drop"
   ) %>%
   mutate(period = "2. Post-Schedule Change (1+1)")
 
 # Combine both periods
-combined_schedule_data <- bind_rows(pre_schedule_data, post_schedule_data)
+combined_schedule_gap_data <- bind_rows(pre_schedule_gap_avg, post_schedule_gap_avg)
 
-# Outlier detection
+# Outlier detection function
 get_outliers <- function(data, n_outliers = 3) {
   iqr_val <- IQR(data$gap, na.rm = TRUE)
   q3 <- quantile(data$gap, 0.75, na.rm = TRUE)
@@ -522,168 +633,67 @@ get_outliers <- function(data, n_outliers = 3) {
     arrange(desc(gap)) %>%
     slice_head(n = n_outliers)
   
-  above_line <- data %>% filter(PCV_24m > PCV_12m)
+  above_line <- data %>% filter(PCV_24m > PCV_12m_lag)
   
   lowest_uptake <- data %>%
-    mutate(min_uptake = pmin(PCV_12m, PCV_24m, na.rm = TRUE)) %>%
+    mutate(min_uptake = pmin(PCV_12m_lag, PCV_24m, na.rm = TRUE)) %>%
     filter(min_uptake == min(min_uptake, na.rm = TRUE)) %>%
     slice(1)
   
   return(list(outliers = outliers, above_line = above_line, lowest = lowest_uptake))
 }
 
-# Get outliers for each period (limit to top 3)
-pre_outliers <- get_outliers(pre_schedule_data, n_outliers = 3)
-post_outliers <- get_outliers(post_schedule_data, n_outliers = 3)
-
-# Check the actual data range
-cat("Data range check:\n")
-cat("PCV_12m range:", range(combined_schedule_data$PCV_12m, na.rm = TRUE), "\n")
-cat("PCV_24m range:", range(combined_schedule_data$PCV_24m, na.rm = TRUE), "\n")
+# Get outliers for each period (limit to 1)
+pre_outliers <- get_outliers(pre_schedule_gap_avg, n_outliers = 1)
+post_outliers <- get_outliers(post_schedule_gap_avg, n_outliers = 1)
 
 # Function to identify UTLAs above the retention line
 get_above_line_utlas <- function(data) {
-  data %>% filter(PCV_24m > PCV_12m)  # Points above the diagonal line
+  data %>% filter(PCV_24m > PCV_12m_lag)  # Points above the diagonal line
 }
 
 # Get above-line UTLAs for each period
-pre_above_line <- get_above_line_utlas(pre_schedule_data)
-post_above_line <- get_above_line_utlas(post_schedule_data)
+pre_above_line <- get_above_line_utlas(pre_schedule_gap_avg)
+post_above_line <- get_above_line_utlas(post_schedule_gap_avg)
 
-# Create the plot with enhanced labeling
-ggplot(combined_schedule_data, aes(x = PCV_12m, y = PCV_24m, color = as.factor(imd_quintile))) +
-  # Reference line (perfect retention)
+ggplot(combined_schedule_gap_data, aes(x = PCV_12m_lag, y = PCV_24m, color = as.factor(imd_quintile))) +
   geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "grey70", linewidth = 1) +
-  
-  # Main scatter points
   geom_point(size = 2.5, shape = 16, alpha = 0.8) +
   
-  # Color scale
+  # Color scale  
   scale_color_manual(
     values = pastel_palette[1:5],
     name = "IMD Quintile",
     labels = c("1 (Least deprived)", "2", "3", "4", "5 (Most deprived)")
   ) +
   
-  # Label outliers for pre-schedule period (RED - to the right)
+  # Labels 
   ggrepel::geom_text_repel(
     data = pre_outliers$outliers,
-    aes(label = paste0(utla_name, "\n(Gap: ", round(gap, 1), "%)")),
-    color = "red",
-    size = 2.8,
-    fontface = "bold",
-    max.overlaps = Inf,
-    force = 3,
-    nudge_x = 2,         
-    direction = "y",       
-    hjust = 0,            
-    xlim = c(NA, 110),     
-    box.padding = 0.5,
-    point.padding = 0.3,
-    segment.color = "red",
-    segment.alpha = 0.7,
-    lineheight = 0.8
+    aes(label = paste0(utla_name, " (", round(gap, 1), "%)")),
+    color = "red", size = 3, fontface = "bold", max.overlaps = Inf
   ) +
   
-  # Label outliers for post-schedule period (DARK RED - to the right)
   ggrepel::geom_text_repel(
     data = post_outliers$outliers,
-    aes(label = paste0(utla_name, "\n(Gap: ", round(gap, 1), "%)")),
-    color = "darkred",
-    size = 2.8,
-    fontface = "bold",
-    max.overlaps = Inf,
-    force = 3,
-    nudge_x = 2,         
-    direction = "y",       
-    hjust = 0,            
-    xlim = c(NA, 110),     
-    box.padding = 0.5,
-    point.padding = 0.3,
-    segment.color = "darkred",
-    segment.alpha = 0.7,
-    lineheight = 0.8
+    aes(label = paste0(utla_name, " (", round(gap, 1), "%)")),
+    color = "darkred", size = 3, fontface = "bold", max.overlaps = Inf
   ) +
   
-  # Label UTLAs above the retention line (BLUE - to the left)
-  {if(nrow(bind_rows(pre_above_line, post_above_line)) > 0) {
-    ggrepel::geom_text_repel(
-      data = bind_rows(pre_above_line, post_above_line),
-      aes(label = paste0(utla_name, "\n(Higher 24m)")),
-      color = "blue",
-      size = 2.8,
-      fontface = "bold",
-      max.overlaps = Inf,
-      force = 3,
-      nudge_x = -2,         # To the left
-      direction = "y",      
-      hjust = 1,            # Right-align text
-      xlim = c(65, NA),     # Allow extension to the left
-      box.padding = 0.5,
-      point.padding = 0.3,
-      segment.color = "blue",
-      segment.alpha = 0.7,
-      lineheight = 0.8
-    )
-  }} +
+  ggrepel::geom_text_repel(
+    data = bind_rows(pre_above_line, post_above_line) %>%
+      mutate(positive_gap = PCV_24m - PCV_12m_lag) %>%
+      filter(positive_gap == max(positive_gap, na.rm = TRUE)) %>%
+      slice(1),  # Just in case of ties, take the first one
+    aes(label = paste0(utla_name, "\n(+", round(PCV_24m - PCV_12m_lag, 1), "%)")),
+    color = "blue",
+    size = 3,
+    fontface = "bold",
+    max.overlaps = Inf
+  ) +
   
-  # Label lowest uptake points (GREEN - with special positioning for Kensington and Chelsea)
-  {if(nrow(bind_rows(pre_outliers$lowest, post_outliers$lowest)) > 0) {
-    
-    # Split the data to handle Kensington and Chelsea separately
-    green_data <- bind_rows(pre_outliers$lowest, post_outliers$lowest)
-    kensington_data <- green_data %>% filter(grepl("Kensington", utla_name))
-    other_green_data <- green_data %>% filter(!grepl("Kensington", utla_name))
-    
-    list(
-      # Regular green labels (not Kensington)
-      if(nrow(other_green_data) > 0) {
-        ggrepel::geom_text_repel(
-          data = other_green_data,
-          aes(label = paste0(utla_name, "\n(Overall: ", round(pmin(PCV_12m, PCV_24m), 1), "%)")),
-          color = "darkgreen",
-          size = 2.8,
-          fontface = "bold",
-          max.overlaps = Inf,
-          force = 3,
-          nudge_x = 2,          
-          direction = "y",      
-          hjust = 0,            
-          xlim = c(NA, 110),    
-          box.padding = 0.5,
-          point.padding = 0.3,
-          segment.color = "darkgreen",
-          segment.alpha = 0.7,
-          lineheight = 0.8
-        )
-      },
-      
-      # Special positioning for Kensington and Chelsea (down and right)
-      if(nrow(kensington_data) > 0) {
-        ggrepel::geom_text_repel(
-          data = kensington_data,
-          aes(label = paste0(utla_name, "\n(Overall: ", round(pmin(PCV_12m, PCV_24m), 1), "%)")),
-          color = "darkgreen",
-          size = 2.8,
-          fontface = "bold",
-          max.overlaps = Inf,
-          force = 5,
-          nudge_x = 3,          # More to the right
-          nudge_y = -2,         # Down
-          hjust = 0,            
-          xlim = c(NA, 110),    
-          ylim = c(65, NA),     # Allow downward movement
-          box.padding = 0.5,
-          point.padding = 0.3,
-          segment.color = "darkgreen",
-          segment.alpha = 0.7,
-          lineheight = 0.8
-        )
-      }
-    )
-  }} +
   
-  # FIXED: Add manual linetype legend without inheriting aesthetics
+  # Add manual linetype legend without inheriting aesthetics
   geom_line(data = data.frame(x = c(-1, -1), y = c(-1, -1), 
                               linetype = "Perfect retention (12m = 24m)"),
             aes(x = x, y = y, linetype = linetype), 
@@ -700,9 +710,7 @@ ggplot(combined_schedule_data, aes(x = PCV_12m, y = PCV_24m, color = as.factor(i
   
   # Labels and styling
   labs(
-    #title = "PCV Booster Retention: Before vs After Schedule Change",
-    #subtitle = "Local authorities with notable coverage patterns",
-    x = "PCV Uptake at 12 Months (%)",
+    x = "PCV Uptake at 12 Months (Previous Year) (%)",
     y = "PCV Uptake at 24 Months (%)",
     caption = "Red: Largest booster gaps | Green: Lowest overall coverage | Blue: Higher 24m than 12m coverage"
   ) +
@@ -724,33 +732,17 @@ ggplot(combined_schedule_data, aes(x = PCV_12m, y = PCV_24m, color = as.factor(i
     plot.margin = margin(t = 20, r = 100, b = 20, l = 100, unit = "pt")
   )
 
-# Print the summary statistics again for context
-cat("\n=== BOOSTER RETENTION COMPARISON ===\n")
-cat("PRE-Schedule Change (2+1):\n")
-cat("• Mean booster gap:", round(mean(pre_schedule_data$gap, na.rm = TRUE), 2), "percentage points\n")
-cat("• Median booster gap:", round(median(pre_schedule_data$gap, na.rm = TRUE), 2), "percentage points\n\n")
-
-cat("POST-Schedule Change (1+1):\n")
-cat("• Mean booster gap:", round(mean(post_schedule_data$gap, na.rm = TRUE), 2), "percentage points\n")
-cat("• Median booster gap:", round(median(post_schedule_data$gap, na.rm = TRUE), 2), "percentage points\n\n")
-
-gap_increase <- mean(post_schedule_data$gap, na.rm = TRUE) - mean(pre_schedule_data$gap, na.rm = TRUE)
-cat("CHANGE: Booster gap increased by", round(gap_increase, 2), "percentage points after schedule change\n")
-
-############################################
-############################################
-
 #### Booster Drop-off Histogram: Pre vs Post Schedule Change ####
 
-# Use the pre and post schedule data
-pre_dropoff_data <- pre_schedule_data %>%
+# Use the pre and post schedule gap data
+pre_dropoff_data <- pre_schedule_gap_avg %>%
   mutate(
     dropoff_pct = gap,
     period = "1. Pre-Schedule Change (2+1)"
   ) %>%
   filter(!is.na(dropoff_pct))
 
-post_dropoff_data <- post_schedule_data %>%
+post_dropoff_data <- post_schedule_gap_avg %>%
   mutate(
     dropoff_pct = gap,
     period = "2. Post-Schedule Change (1+1)"
@@ -768,6 +760,13 @@ pre_outlier_threshold <- pre_q3 + 1.5 * pre_iqr
 post_iqr <- IQR(post_dropoff_data$dropoff_pct, na.rm = TRUE)
 post_q3 <- quantile(post_dropoff_data$dropoff_pct, 0.75, na.rm = TRUE)
 post_outlier_threshold <- post_q3 + 1.5 * post_iqr
+
+# Calculate max y-value across both periods for consistent scaling
+max_y_pre <- max(ggplot_build(ggplot(pre_dropoff_data, aes(x = dropoff_pct)) + 
+                                geom_histogram(binwidth = 1))$data[[1]]$count)
+max_y_post <- max(ggplot_build(ggplot(post_dropoff_data, aes(x = dropoff_pct)) + 
+                                 geom_histogram(binwidth = 1))$data[[1]]$count)
+max_y <- max(max_y_pre, max_y_post)
 
 # Create the comparison histogram
 ggplot(combined_dropoff_data, aes(x = dropoff_pct)) +
@@ -790,6 +789,9 @@ ggplot(combined_dropoff_data, aes(x = dropoff_pct)) +
   # Reference line at zero for both panels
   geom_vline(xintercept = 0, linetype = "dashed", color = "grey40", linewidth = 1) +
   
+  # Y-axis reference line to emphasize distribution height
+  geom_hline(yintercept = 0, color = "black", linewidth = 0.5) +
+  
   # Outlier region shading (different for each panel)
   geom_rect(data = data.frame(period = "1. Pre-Schedule Change (2+1)", 
                               xmin = pre_outlier_threshold, 
@@ -808,13 +810,11 @@ ggplot(combined_dropoff_data, aes(x = dropoff_pct)) +
            label = "Perfect retention", 
            color = "grey40", hjust = 0, vjust = 1.1, size = 3) +
   
-  # Facet by time period - FIXED: removed scales = "free_y"
-  facet_wrap(~ period, ncol = 2) +
+  # Facet by time period with free y-scales to ensure both axes are visible
+  facet_wrap(~ period, ncol = 2, scales = "free_y") +
   
   labs(
-    #title = "Distribution of PCV Booster Drop-off Rates: Before vs After Schedule Change",
-    #subtitle = "Comparison of booster retention patterns across local authorities",
-    x = "Booster Drop-off (12m - 24m coverage, percentage points)",
+    x = "Booster Drop-off (12m[previous year] - 24m coverage, percentage points)",
     y = "Number of Local Authorities",
     caption = sprintf("Pre-schedule: Mean %.1f%%, Median %.1f%% | Post-schedule: Mean %.1f%%, Median %.1f%%",
                       mean(pre_dropoff_data$dropoff_pct, na.rm = TRUE),
@@ -830,17 +830,24 @@ ggplot(combined_dropoff_data, aes(x = dropoff_pct)) +
     panel.grid.major.x = element_blank(),
     panel.grid.minor = element_blank(),
     strip.text = element_text(face = "bold", size = 11),
-    plot.caption = element_text(hjust = 0.5, size = 10, margin = margin(t = 10))
+    plot.caption = element_text(hjust = 0.5, size = 10, margin = margin(t = 10)),
+    axis.line.y = element_line(color = "black", linewidth = 0.5),
+    axis.line.x = element_line(color = "black", linewidth = 0.5),
+    panel.grid.major.y = element_line(color = "grey90", linewidth = 0.3)
   ) +
   
   scale_x_continuous(
     breaks = seq(-5, 25, by = 5),
     minor_breaks = seq(-5, 25, by = 1),
     limits = c(-2, max(combined_dropoff_data$dropoff_pct) + 1)
+  ) +
+  
+  # Ensure y-axis starts at 0 for both panels
+  scale_y_continuous(
+    expand = expansion(mult = c(0, 0.05)) 
   )
-
-# Print summary statistics
-cat("\n=== BOOSTER DROP-OFF DISTRIBUTION COMPARISON ===\n")
+# Print summary statistics for booster gap with 1-year lag
+cat("\n=== BOOSTER DROP-OFF DISTRIBUTION WITH 1-YEAR LAG ===\n")
 cat("PRE-Schedule Change (2+1):\n")
 cat("• Mean drop-off:", round(mean(pre_dropoff_data$dropoff_pct, na.rm = TRUE), 2), "percentage points\n")
 cat("• Median drop-off:", round(median(pre_dropoff_data$dropoff_pct, na.rm = TRUE), 2), "percentage points\n")
