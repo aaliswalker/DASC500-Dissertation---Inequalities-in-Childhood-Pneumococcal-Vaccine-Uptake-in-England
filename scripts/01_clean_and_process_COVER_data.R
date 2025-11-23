@@ -2500,9 +2500,52 @@ merged_LA = full_join(la12, la24, by = c("ONS_Code", "UTLA_Name")) %>%
 merged_LA = aggregate_boundary_changes(merged_LA, "2024/2025")
 q2_data = fread(file.path(clean_dir, "COVER_2024_Q1_Q2_Cleaned.csv"))
 combined_2024 = bind_rows(q2_data, merged_LA)
-fwrite(combined_2024, file.path(clean_dir, "COVER_2024_Cleaned.csv"))
+fwrite(combined_2024, file.path(clean_dir, "COVER_Q1_Q2_Q3_Cleaned.csv"))
 
 # Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
+validate_cover_data(combined_2024, "2024/2025 Q1-Q3", valid_utlas_2019_to_2021)
+
+#### 🫧 2024 Q4 🫧 ####
+file_path = file.path(main_dir, "2024 Q4.ods")
+
+la12 = read_ods(file_path, sheet = "Table_5", skip = 4) %>%
+  select(`Code`, `Local authority`, `Number of children who reached 12 months in reporting quarter`, `Coverage at 12 months PCV1 (%)`) %>%
+  rename(
+    ONS_Code = `Code`,
+    UTLA_Name = `Local authority`,
+    Population_12m = `Number of children who reached 12 months in reporting quarter`,
+    PCV_12m = `Coverage at 12 months PCV1 (%)`
+  ) %>%
+  map_utla_codes_enhanced("2024/2025") %>%
+  filter(!is.na(ONS_Code), ONS_Code != "[z]")
+
+la24 = read_ods(file_path, sheet = "Table_6", skip = 4) %>%
+  select(`Code`, `Local authority`, `Number of children who reached 24 months in reporting quarter`, `Coverage at 24 months PCV Booster (%)`) %>%
+  rename(
+    ONS_Code = `Code`,
+    UTLA_Name = `Local authority`,
+    Population_24m = `Number of children who reached 24 months in reporting quarter`,
+    PCV_24m = `Coverage at 24 months PCV Booster (%)`
+  ) %>%
+  map_utla_codes_enhanced("2024/2025") %>%
+  filter(!is.na(ONS_Code), ONS_Code != "[z]")
+
+merged_LA = full_join(la12, la24, by = c("ONS_Code", "UTLA_Name")) %>%
+  mutate(
+    Year = "2024/2025",
+    Quarter = "Q4",
+    Timepoint = 3,
+    Vaccine_Schedule = 1
+  ) %>%
+  select(ONS_Code, UTLA_Name, PCV_12m, PCV_24m, Population_12m, Population_24m,
+         Year, Quarter, Timepoint, Vaccine_Schedule)
+
+merged_LA = aggregate_boundary_changes(merged_LA, "2024/2025")
+q3_data = fread(file.path(clean_dir, "COVER_Q1_Q2_Q3_Cleaned.csv"))
+combined_2024 = bind_rows(q3_data, merged_LA)
+fwrite(combined_2024, file.path(clean_dir, "COVER_2024_Cleaned.csv"))
+
+# Validation check
 validate_cover_data(combined_2024, "2024/2025 Full", valid_utlas_2019_to_2021)
 
 #### 🫧 Final Check for 2024 🫧 ####
