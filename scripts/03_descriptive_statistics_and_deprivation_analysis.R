@@ -618,6 +618,19 @@ post_schedule_gap_avg <- post_schedule_gap %>%
   ) %>%
   mutate(period = "2. Post-Schedule Change (1+1)")
 
+pre_outliers$outliers <- pre_outliers$outliers %>%
+  mutate(period = "1. Pre-Schedule Change (2+1)")
+
+pre_outliers$lowest <- pre_outliers$lowest %>%
+  mutate(period = "1. Pre-Schedule Change (2+1)")
+
+# Post-schedule labels
+post_outliers$outliers <- post_outliers$outliers %>%
+  mutate(period = "2. Post-Schedule Change (1+1)")
+
+post_outliers$lowest <- post_outliers$lowest %>%
+  mutate(period = "2. Post-Schedule Change (1+1)")
+
 # Combine both periods
 combined_schedule_gap_data <- bind_rows(pre_schedule_gap_avg, post_schedule_gap_avg)
 
@@ -668,28 +681,29 @@ ggplot(combined_schedule_gap_data, aes(x = PCV_12m_lag, y = PCV_24m, color = as.
   ) +
   
   # Labels 
+  # RED
   ggrepel::geom_text_repel(
-    data = pre_outliers$outliers,
-    aes(label = paste0(utla_name, " (", round(gap, 1), "%)")),
-    color = "red", size = 3, fontface = "bold", max.overlaps = Inf
-  ) +
-  
-  ggrepel::geom_text_repel(
-    data = post_outliers$outliers,
+    data = bind_rows(pre_outliers$outliers, post_outliers$outliers),
     aes(label = paste0(utla_name, " (", round(gap, 1), "%)")),
     color = "darkred", size = 3, fontface = "bold", max.overlaps = Inf
   ) +
   
+  # BLUE 
   ggrepel::geom_text_repel(
     data = bind_rows(pre_above_line, post_above_line) %>%
       mutate(positive_gap = PCV_24m - PCV_12m_lag) %>%
+      group_by(period) %>%
       filter(positive_gap == max(positive_gap, na.rm = TRUE)) %>%
-      slice(1),  # Just in case of ties, take the first one
+      slice(1),
     aes(label = paste0(utla_name, "\n(+", round(PCV_24m - PCV_12m_lag, 1), "%)")),
-    color = "blue",
-    size = 3,
-    fontface = "bold",
-    max.overlaps = Inf
+    color = "blue", size = 3, fontface = "bold", max.overlaps = Inf
+  ) +
+  
+  # GREEN
+  ggrepel::geom_text_repel(
+    data = bind_rows(pre_outliers$lowest, post_outliers$lowest),
+    aes(label = paste0(utla_name, "\n(", round(pmin(PCV_12m_lag, PCV_24m), 1), "%)")),
+    color = "darkgreen", size = 3, fontface = "bold", max.overlaps = Inf
   ) +
   
   
@@ -731,7 +745,6 @@ ggplot(combined_schedule_gap_data, aes(x = PCV_12m_lag, y = PCV_24m, color = as.
     panel.spacing = unit(1.5, "lines"),
     plot.margin = margin(t = 20, r = 100, b = 20, l = 100, unit = "pt")
   )
-
 #### Booster Drop-off Histogram: Pre vs Post Schedule Change ####
 
 # Use the pre and post schedule gap data
@@ -791,19 +804,6 @@ ggplot(combined_dropoff_data, aes(x = dropoff_pct)) +
   
   # Y-axis reference line to emphasize distribution height
   geom_hline(yintercept = 0, color = "black", linewidth = 0.5) +
-  
-  # Outlier region shading (different for each panel)
-  geom_rect(data = data.frame(period = "1. Pre-Schedule Change (2+1)", 
-                              xmin = pre_outlier_threshold, 
-                              xmax = max(pre_dropoff_data$dropoff_pct) + 0.5),
-            aes(xmin = xmin, xmax = xmax, ymin = 0, ymax = Inf), 
-            fill = "#CC6677", alpha = 0.2, inherit.aes = FALSE) +
-  
-  geom_rect(data = data.frame(period = "2. Post-Schedule Change (1+1)", 
-                              xmin = post_outlier_threshold, 
-                              xmax = max(post_dropoff_data$dropoff_pct) + 0.5),
-            aes(xmin = xmin, xmax = xmax, ymin = 0, ymax = Inf), 
-            fill = "#CC6677", alpha = 0.2, inherit.aes = FALSE) +
   
   # Labels for perfect retention
   annotate("text", x = 0.5, y = Inf, 
