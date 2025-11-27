@@ -264,10 +264,10 @@ validate_cover_data <- function(cover_data, year, valid_utlas_vec) {
 ####🫧 COVER data processing 🫧######
 #####################################
 
-#### ⋆˚࿔ 2 0 1 3 — Q2 🫧 ####
+#### ⋆˚࿔ 2013/2014 (Jul 2013 - Mar 2014) 🫧 ####
 
-#### 🫧 2013 Q2 🫧 ####
-file_path = file.path(main_dir, "2013_Q2.xls")
+#### 🫧 2013/2014 Q2 (Jul-Sep 2013) 🫧 ####
+file_path = file.path(main_dir, "2013_2014_Q2.xls")
 
 # Load 12-month sheet
 la12 = read_excel(file_path, sheet = "LA-12m", skip = 8) %>%
@@ -314,8 +314,8 @@ fwrite(merged_LA, file.path(clean_dir, "COVER_2013_Q2_Cleaned.csv"))
 # Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
 validate_cover_data(merged_LA, "2013/2014 Q2", valid_utlas_2019_to_2021) 
 
-#### 🫧 2013 Q3 🫧 ####
-file_path = file.path(main_dir, "2013_Q3.xls")
+#### 🫧 2013/2014 Q3 (Oct-Dec 2013) 🫧 ####
+file_path = file.path(main_dir, "2013_2014_Q3.xls")
 
 la12 = read_excel(file_path, sheet = "LA-12m", skip = 8) %>%
   select(`ONS Upper Tier LA Code`, `ONS Upper Tier LA Name`, `No. Children`, `12m_PCV%`) %>%
@@ -357,8 +357,8 @@ fwrite(combined_2013, file.path(clean_dir, "COVER_2013_Q2_Q3_Cleaned.csv"))
 # Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
 validate_cover_data(combined_2013, "2013/2014 Q2-Q3", valid_utlas_2019_to_2021)
 
-#### 🫧 2013 Q4 🫧 ####
-file_path = file.path(main_dir, "2013_Q4.xls")
+#### 🫧 2013/2014 Q4 (Jan-Mar 2014) 🫧 ####
+file_path = file.path(main_dir, "2013_2014_Q4.xls")
 
 la12 = read_excel(file_path, sheet = "LA-12m", skip = 8) %>%
   select(`ONS Upper Tier LA Code`, `ONS Upper Tier LA Name`, `No. Children`, `12m_PCV%`) %>%
@@ -400,10 +400,10 @@ fwrite(combined_2013, file.path(clean_dir, "COVER_2013_Cleaned.csv"))
 # Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
 validate_cover_data(combined_2013, "2013/2014 Full", valid_utlas_2019_to_2021)
 
-#### ⋆˚࿔ 2 0 1 4 𝜗𝜚˚⋆ ####
+#### ⋆˚࿔ 2014/2015 (Apr 2014 - Mar 2015) 𝜗𝜚˚⋆ ####
 
-#### 🫧 2014 Q1 🫧 ####
-file_path = file.path(main_dir, "2014_Q1.xlsx")
+#### 🫧 2014/2015 Q1 (Apr-Jun 2014) 🫧 ####
+file_path = file.path(main_dir, "2014_2015_Q1.xlsx")
 
 # Load 12-month sheet
 la12 = read_excel(file_path, sheet = "12m_UT LA", range = "F1:M153") %>%
@@ -447,8 +447,8 @@ fwrite(merged_LA, file.path(clean_dir, "COVER_2014_Q1_Cleaned.csv"))
 # Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
 validate_cover_data(merged_LA, "2014/2015 Q1", valid_utlas_2019_to_2021)
 
-#### 🫧 2014 Q2 🫧 ####
-file_path = file.path(main_dir, "2014_Q2.xlsx")
+#### 🫧 2014/2015 Q2 (Jul-Sep 2014) 🫧 ####
+file_path = file.path(main_dir, "2014_2015_Q2.xlsx")
 
 # Load 12-month sheet
 la12 = read_excel(file_path, sheet = "12m_UT LA", range = "F1:M153") %>%
@@ -494,8 +494,8 @@ fwrite(combined_2014, file.path(clean_dir, "COVER_2014_Q1_Q2_Cleaned.csv"))
 # Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
 validate_cover_data(combined_2014, "2014/2015 Q1-Q2", valid_utlas_2019_to_2021)
 
-#### 🫧 2014 Q3 🫧 ####
-file_path = file.path(main_dir, "2014_Q3.xlsx")
+#### 🫧 2014/2015 Q3 (Oct-Dec 2014) 🫧 ####
+file_path = file.path(main_dir, "2014_2015_Q3.xlsx")
 
 # Load 12-month sheet
 la12 = read_excel(file_path, sheet = "12m_UT LA", range = "E1:M153") %>%
@@ -541,8 +541,8 @@ fwrite(combined_2014, file.path(clean_dir, "COVER_2014_Q1_Q2_Q3_Cleaned.csv"))
 # Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
 validate_cover_data(combined_2014, "2014/2015 Q1-Q3", valid_utlas_2019_to_2021)
 
-#### 🫧 2014 Q4 🫧 ####
-file_path = file.path(main_dir, "2014_Q4.xlsx")
+#### 🫧 2014/2015 Q4 (Jan-Mar 2015) 🫧 ####
+file_path = file.path(main_dir, "2014_2015_Q4.xlsx")
 
 # Load 12-month sheet
 la12 = read_excel(file_path, sheet = "12m_UT LA", range = "E1:M154") %>%
@@ -588,10 +588,10 @@ fwrite(combined_2014, file.path(clean_dir, "COVER_2014_Cleaned.csv"))
 # Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
 validate_cover_data(combined_2014, "2014/2015 Full", valid_utlas_2019_to_2021)
 
-#### ⋆˚࿔ 2 0 1 5 𝜗𝜚˚ ⋆ ####
+#### ⋆˚࿔ 2015/2016 (Apr 2015 - Mar 2016) 𝜗𝜚˚ ⋆ ####
 
-#### 🫧 2015 Q1 🫧 ####
-file_path = file.path(main_dir, "2015_Q1.xlsx")
+#### 🫧 2015/2016 Q1 (Apr-Jun 2015) 🫧 ####
+file_path = file.path(main_dir, "2015_2016_Q1.xlsx")
 
 # Load 12-month sheet
 la12 = read_excel(file_path, sheet = "12m_UT LA", range = "E1:M154") %>%
@@ -635,8 +635,8 @@ fwrite(merged_LA, file.path(clean_dir, "COVER_2015_Q1_Cleaned.csv"))
 # Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
 validate_cover_data(merged_LA, "2015/2016 Q1", valid_utlas_2019_to_2021)
 
-#### 🫧 2015 Q2 🫧 ####
-file_path = file.path(main_dir, "2015_Q2.xlsx")
+#### 🫧 2015/2016 Q2 (Jul-Sep 2015) 🫧 ####
+file_path = file.path(main_dir, "2015_2016_Q2.xlsx")
 
 # Load 12-month sheet
 la12 = read_excel(file_path, sheet = "12m_UT LA", range = "E1:M154") %>%
@@ -682,8 +682,8 @@ fwrite(combined_2015, file.path(clean_dir, "COVER_2015_Q1_Q2_Cleaned.csv"))
 # Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
 validate_cover_data(combined_2015, "2015/2016 Q1-Q2", valid_utlas_2019_to_2021)
 
-#### 🫧 2015 Q3 🫧 ####
-file_path = file.path(main_dir, "2015_Q3.xlsx")
+#### 🫧 2015/2016 Q3 (Oct-Dec 2015) 🫧 ####
+file_path = file.path(main_dir, "2015_2016_Q3.xlsx")
 
 # Load 12-month sheet
 la12 = read_excel(file_path, sheet = "12m_UT LA", range = "E1:M154") %>%
@@ -729,8 +729,8 @@ fwrite(combined_2015, file.path(clean_dir, "COVER_2015_Q1_Q2_Q3_Cleaned.csv"))
 # Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
 validate_cover_data(combined_2015, "2015/2016 Q1-Q3", valid_utlas_2019_to_2021)
 
-#### 🫧 2015 Q4 🫧 ####
-file_path = file.path(main_dir, "2015_Q4.xlsx")
+#### 🫧 2015/2016 Q4 (Jan-Mar 2016) 🫧 ####
+file_path = file.path(main_dir, "2015_2016_Q4.xlsx")
 
 # Load 12-month sheet
 la12 = read_excel(file_path, sheet = "12m_UT LA", range = "E1:M154") %>%
@@ -776,7 +776,7 @@ fwrite(combined_2015, file.path(clean_dir, "COVER_2015_Cleaned.csv"))
 # Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
 validate_cover_data(combined_2015, "2015/2016 Full", valid_utlas_2019_to_2021)
 
-#### 🫧 Final check for 2015 🫧 ####
+#### 🫧 Final check for 2015/2016 🫧 ####
 combined_2015 %>%
   group_by(Quarter) %>%
   summarise(Unique_UTLAs = n_distinct(ONS_Code))
@@ -788,10 +788,10 @@ print(missing_utlas)
 utla_list %>% filter(UTLA_code %in% missing_utlas)
 
 
-#### ⋆˚࿔ 2 0 1 6 𝜗𝜚˚ ⋆ ####
+#### ⋆˚࿔ 2016/2017 (Apr 2016 - Mar 2017) 𝜗𝜚˚ ⋆ ####
 
-#### 🫧 2016 Q1 🫧 ####
-file_path = file.path(main_dir, "2016_Q1.xlsx")
+#### 🫧 2016/2017 Q1 (Apr-Jun 2016) 🫧 ####
+file_path = file.path(main_dir, "2016_2017_Q1.xlsx")
 
 # Load 12-month sheet
 la12 = read_excel(file_path, sheet = "12m_UTLA_AT") %>%
@@ -837,8 +837,8 @@ fwrite(merged_LA, file.path(clean_dir, "COVER_2016_Q1_Cleaned.csv"))
 # Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
 validate_cover_data(merged_LA, "2016/2017 Q1", valid_utlas_2019_to_2021)
 
-#### 🫧 2016 Q2 🫧 ####
-file_path = file.path(main_dir, "2016_Q2.xlsx")
+#### 🫧 2016/2017 Q2 (Jul-Sep 2016) 🫧 ####
+file_path = file.path(main_dir, "2016_2017_Q2.xlsx")
 
 # Load 12-month sheet
 la12 = read_excel(file_path, sheet = "12m_UTLA_AT") %>%
@@ -891,8 +891,8 @@ fwrite(combined_2016, file.path(clean_dir, "COVER_2016_Q1_Q2_Cleaned.csv"))
 # Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
 validate_cover_data(combined_2016, "2016/2017 Q1-Q2", valid_utlas_2019_to_2021)
 
-#### 🫧 2016 Q3 🫧 ####
-file_path = file.path(main_dir, "2016_Q3.xlsx")
+#### 🫧 2016/2017 Q3 (Oct-Dec 2016) 🫧 ####
+file_path = file.path(main_dir, "2016_2017_Q3.xlsx")
 
 # Load 12-month sheet
 la12 = read_excel(file_path, sheet = "12m_UTLA_AT") %>%
@@ -940,8 +940,8 @@ fwrite(combined_2016, file.path(clean_dir, "COVER_2016_Q1_Q2_Q3_Cleaned.csv"))
 # Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
 validate_cover_data(combined_2016, "2016/2017 Q1-Q3", valid_utlas_2019_to_2021)
 
-#### 🫧 2016 Q4 🫧 ####
-file_path = file.path(main_dir, "2016_Q4.xlsx")
+#### 🫧 2016/2017 Q4 (Jan-Mar 2017) 🫧 ####
+file_path = file.path(main_dir, "2016_2017_Q4.xlsx")
 
 # Load 12-month sheet
 la12 = read_excel(file_path, sheet = "12m_UTLA_AT") %>%
@@ -989,7 +989,7 @@ fwrite(combined_2016, file.path(clean_dir, "COVER_2016_Cleaned.csv"))
 # Validation check: List of ONS codes in final processed dataset should match the utla list from 2019
 validate_cover_data(combined_2016, "2016/2017 Full", valid_utlas_2019_to_2021)
 
-#### 🫧 Final check for 2016 🫧 ####
+#### 🫧 Final check for 2016/2017 🫧 ####
 combined_2016 %>%
   group_by(Quarter) %>%
   summarise(Unique_UTLAs = n_distinct(ONS_Code))
@@ -1001,10 +1001,10 @@ print(missing_utlas)
 utla_list %>% filter(UTLA_code %in% missing_utlas)
 
 
-#### ⋆˚࿔ 2 0 1 7 𝜗𝜚˚ ⋆ ####
+#### ⋆˚࿔ 2017/2018 (Apr 2017 - Mar 2018) 𝜗𝜚˚ ⋆ ####
 
-#### 🫧 2017 Q1 🫧 ####
-file_path = file.path(main_dir, "2017_Q1.xlsx")
+#### 🫧 2017/2018 Q1 (Apr-Jun 2017) 🫧 ####
+file_path = file.path(main_dir, "2017_2018_Q1.xlsx")
 
 # Load 12-month sheet
 la12 = read_excel(file_path, sheet = "12m_UTLA_AT") %>%
@@ -1054,8 +1054,8 @@ fwrite(merged_LA, file.path(clean_dir, "COVER_2017_Q1_Cleaned.csv"))
 # Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
 validate_cover_data(merged_LA, "2017/2018 Q1", valid_utlas_2019_to_2021)
 
-#### 🫧 2017 Q2 🫧 ####
-file_path = file.path(main_dir, "2017_Q2.xlsx")
+#### 🫧 2017/2018 Q2 (Jul-Sep 2017) 🫧 ####
+file_path = file.path(main_dir, "2017_2018_Q2.xlsx")
 
 # Load 12-month sheet
 la12 = read_excel(file_path, sheet = "12m_UTLA_AT") %>%
@@ -1103,8 +1103,8 @@ fwrite(combined_2017, file.path(clean_dir, "COVER_2017_Q1_Q2_Cleaned.csv"))
 # Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
 validate_cover_data(combined_2017, "2017/2018 Q1-Q2", valid_utlas_2019_to_2021)
 
-#### 🫧 2017 Q3 🫧 ####
-file_path = file.path(main_dir, "2017_Q3.xlsx")
+#### 🫧 2017/2018 Q3 (Oct-Dec 2017) 🫧 ####
+file_path = file.path(main_dir, "2017_2018_Q3.xlsx")
 
 # Load 12-month sheet
 la12 = read_excel(file_path, sheet = "12m_UTLA_AT") %>%
@@ -1152,8 +1152,8 @@ fwrite(combined_2017, file.path(clean_dir, "COVER_2017_Q1_Q2_Q3_Cleaned.csv"))
 # Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
 validate_cover_data(combined_2017, "2017/2018 Q1-Q3", valid_utlas_2019_to_2021)
 
-#### 🫧 2017 Q4 🫧 ####
-file_path = file.path(main_dir, "2017_Q4.xlsx")
+#### 🫧 2017/2018 Q4 (Jan-Mar 2018) 🫧 ####
+file_path = file.path(main_dir, "2017_2018_Q4.xlsx")
 
 # Load 12-month sheet
 la12 = read_excel(file_path, sheet = "12m_UTLA_AT") %>%
@@ -1201,7 +1201,7 @@ fwrite(combined_2017, file.path(clean_dir, "COVER_2017_Cleaned.csv"))
 # Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
 validate_cover_data(combined_2017, "2017/2018 Full", valid_utlas_2019_to_2021)
 
-#### 🫧 Final check for 2017 🫧 ####
+#### 🫧 Final check for 2017/2018 🫧 ####
 combined_2017 %>%
   group_by(Quarter) %>%
   summarise(Unique_UTLAs = n_distinct(ONS_Code))
@@ -1213,10 +1213,10 @@ print(missing_utlas)
 utla_list %>% filter(UTLA_code %in% missing_utlas)
 
 
-#### ⋆˚࿔ 2 0 1 8 𝜗𝜚˚ ⋆ ####
+#### ⋆˚࿔ 2018/2019 (Apr 2018 - Mar 2019) 𝜗𝜚˚ ⋆ ####
 
-#### 🫧 2018 Q1 🫧 ####
-file_path = file.path(main_dir, "2018_Q1.xlsx")
+#### 🫧 2018/2019 Q1 (Apr-Jun 2018) 🫧 ####
+file_path = file.path(main_dir, "2018_2019_Q1.xlsx")
 
 # Load 12-month sheet
 la12 = read_excel(file_path, sheet = "12m_UTLA_GOR") %>%
@@ -1262,8 +1262,8 @@ fwrite(merged_LA, file.path(clean_dir, "COVER_2018_Q1_Cleaned.csv"))
 # Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
 validate_cover_data(merged_LA, "2018/2019 Q1", valid_utlas_2019_to_2021)
 
-#### 🫧 2018 Q2 🫧 ####
-file_path = file.path(main_dir, "2018_Q2.xlsx")
+#### 🫧 2018/2019 Q2 (Jul-Sep 2018) 🫧 ####
+file_path = file.path(main_dir, "2018_2019_Q2.xlsx")
 
 # Load 12-month sheet
 la12 = read_excel(file_path, sheet = "12m_UTLA_GOR") %>%
@@ -1311,8 +1311,8 @@ fwrite(combined_2018, file.path(clean_dir, "COVER_2018_Q1_Q2_Cleaned.csv"))
 # Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
 validate_cover_data(combined_2018, "2018/2019 Q1-Q2", valid_utlas_2019_to_2021)
 
-#### 🫧 2018 Q3 🫧 ####
-file_path = file.path(main_dir, "2018_Q3.xlsx")
+#### 🫧 2018/2019 Q3 (Oct-Dec 2018) 🫧 ####
+file_path = file.path(main_dir, "2018_2019_Q3.xlsx")
 
 # Load 12-month sheet
 la12 = read_excel(file_path, sheet = "12m_UTLA_GOR") %>%
@@ -1360,8 +1360,8 @@ fwrite(combined_2018, file.path(clean_dir, "COVER_2018_Q1_Q2_Q3_Cleaned.csv"))
 # Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
 validate_cover_data(combined_2018, "2018/2019 Q1-Q3", valid_utlas_2019_to_2021)
 
-#### 🫧 2018 Q4 🫧 ####
-file_path = file.path(main_dir, "2018_Q4.xlsx")
+#### 🫧 2018/2019 Q4 (Jan-Mar 2019) 🫧 ####
+file_path = file.path(main_dir, "2018_2019_Q4.xlsx")
 
 # Load 12-month sheet
 la12 = read_excel(file_path, sheet = "12m_UTLA_GOR") %>%
@@ -1409,7 +1409,7 @@ fwrite(combined_2018, file.path(clean_dir, "COVER_2018_Cleaned.csv"))
 # Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
 validate_cover_data(combined_2018, "2018/2019 Full", valid_utlas_2019_to_2021)
 
-#### 🫧 Final check for 2018 🫧 ####
+#### 🫧 Final check for 2018/2019 🫧 ####
 combined_2018 %>%
   group_by(Quarter) %>%
   summarise(Unique_UTLAs = n_distinct(ONS_Code))
@@ -1421,10 +1421,10 @@ print(missing_utlas)
 utla_list %>% filter(UTLA_code %in% missing_utlas)
 
 
-#### ⋆˚࿔ 2 0 1 9 𝜗𝜚˚ ⋆ ####
+#### ⋆˚࿔ 2019/2020 (Apr 2019 - Mar 2020) 𝜗𝜚˚ ⋆ ####
 
-#### 🫧 2019 Q1 🫧 ####
-file_path = file.path(main_dir, "2019_Q1.ods")
+#### 🫧 2019/2020 Q1 (Apr-Jun 2019) 🫧 ####
+file_path = file.path(main_dir, "2019_2020_Q1.ods")
 
 # Load 12-month sheet
 la12 = read_ods(file_path, sheet = "12m_UTLA_GOR") %>%
@@ -1470,8 +1470,8 @@ fwrite(merged_LA, file.path(clean_dir, "COVER_2019_Q1_Cleaned.csv"))
 # Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
 validate_cover_data(merged_LA, "2019/2020 Q1", valid_utlas_2019_to_2021)
 
-#### 🫧 2019 Q2 🫧 ####
-file_path = file.path(main_dir, "2019_Q2.ods")
+#### 🫧 2019/2020 Q2 (Jul-Sep 2019) 🫧 ####
+file_path = file.path(main_dir, "2019_2020_Q2.ods")
 
 # Load 12-month sheet
 la12 = read_ods(file_path, sheet = "12m_UTLA_GOR") %>%
@@ -1519,8 +1519,8 @@ fwrite(combined_2019, file.path(clean_dir, "COVER_2019_Q1_Q2_Cleaned.csv"))
 # Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
 validate_cover_data(combined_2019, "2019/2020 Q1-Q2", valid_utlas_2019_to_2021)
 
-#### 🫧 2019 Q3 🫧 ####
-file_path = file.path(main_dir, "2019_Q3.ods")
+#### 🫧 2019/2020 Q3 (Oct-Dec 2019) 🫧 ####
+file_path = file.path(main_dir, "2019_2020_Q3.ods")
 
 # Load 12-month sheet
 la12 = read_ods(file_path, sheet = "12m_UTLA_GOR") %>%
@@ -1568,8 +1568,8 @@ fwrite(combined_2019, file.path(clean_dir, "COVER_2019_Q1_Q2_Q3_Cleaned.csv"))
 # Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
 validate_cover_data(combined_2019, "2019/2020 Q1-Q3", valid_utlas_2019_to_2021)
 
-#### 🫧 2019 Q4 🫧 ####
-file_path = file.path(main_dir, "2019_Q4.ods")
+#### 🫧 2019/2020 Q4 (Jan-Mar 2020) 🫧 ####
+file_path = file.path(main_dir, "2019_2020_Q4.ods")
 
 # Load 12-month sheet
 la12 = read_ods(file_path, sheet = "12m_UTLA_GOR") %>%
@@ -1617,7 +1617,7 @@ fwrite(combined_2019, file.path(clean_dir, "COVER_2019_Cleaned.csv"))
 # Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
 validate_cover_data(combined_2019, "2019/2020 Full", valid_utlas_2019_to_2021)
 
-#### 🫧 Final check for 2019 🫧 ####
+#### 🫧 Final check for 2019/2020 🫧 ####
 combined_2019 %>%
   group_by(Quarter) %>%
   summarise(Unique_UTLAs = n_distinct(ONS_Code))
@@ -1632,10 +1632,10 @@ utla_list %>% filter(UTLA_code %in% missing_utlas)
 #### *ੈ✩‧₊˚༺☆༻*ੈ✩‧₊˚ V  A  C  C  I  N  E    C  H  A  N  G  E *ੈ✩‧₊˚༺☆༻*ੈ✩‧₊˚  ####
 #####################################
 
-#### ⋆˚࿔ 2 0 2 0 𝜗𝜚˚ ⋆ ####
+#### ⋆˚࿔ 2020/2021 (Apr 2020 - Mar 2021) 𝜗𝜚˚ ⋆ ####
 
-#### 🫧 2020 Q1 🫧 ####
-file_path = file.path(main_dir, "2020 Q1.ods")
+#### 🫧 2020/2021 Q1 (Apr-Jun 2020) 🫧 ####
+file_path = file.path(main_dir, "2020_2021_Q1.ods")
 
 # Load 12-month sheet
 la12 = read_ods(file_path, sheet = "12m_UTLA_GOR") %>%
@@ -1679,8 +1679,8 @@ fwrite(merged_LA, file.path(clean_dir, "COVER_2020_Q1_Cleaned.csv"))
 # Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
 validate_cover_data(merged_LA, "2020/2021 Q1", valid_utlas_2019_to_2021)
 
-#### 🫧 2020 Q2 🫧 ####
-file_path = file.path(main_dir, "2020 Q2.ods")
+#### 🫧 2020/2021 Q2 (Jul-Sep 2020) 🫧 ####
+file_path = file.path(main_dir, "2020_2021_Q2.ods")
 
 la12 = read_ods(file_path, sheet = "12m_UTLA_GOR") %>%
   select(`ONS Upper Tier LA Code`, `Upper Tier LA Name`, `12m Denominator`, `12m PCV2%`) %>%
@@ -1722,8 +1722,8 @@ fwrite(combined_2020, file.path(clean_dir, "COVER_2020_Q1_Q2_Cleaned.csv"))
 # Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
 validate_cover_data(combined_2020, "2020/2021 Q1-Q2", valid_utlas_2019_to_2021)
 
-#### 🫧 2020 Q3 🫧 ####
-file_path = file.path(main_dir, "2020 Q3.ods")
+#### 🫧 2020/2021 Q3 (Oct-Dec 2020) 🫧 ####
+file_path = file.path(main_dir, "2020_2021_Q3.ods")
 
 la12 = read_ods(file_path, sheet = "12m_UTLA_GOR") %>%
   select(`ONS Upper Tier LA Code`, `Upper Tier LA Name`, `12m Denominator`, `12m PCV2%`) %>%
@@ -1765,8 +1765,8 @@ fwrite(combined_2020, file.path(clean_dir, "COVER_2020_Q1_Q2_Q3_Cleaned.csv"))
 # Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
 validate_cover_data(combined_2020, "2020/2021 Q1-Q3", valid_utlas_2019_to_2021)
 
-#### 🫧 2020 Q4 🫧 ####
-file_path = file.path(main_dir, "2020 Q4.ods")
+#### 🫧 2020/2021 Q4 (Jan-Mar 2021) 🫧 ####
+file_path = file.path(main_dir, "2020_2021_Q4.ods")
 
 la12 = read_ods(file_path, sheet = "12m_UTLA_GOR") %>%
   select(`ONS Upper Tier LA Code`, `Upper Tier LA Name`, `12m Denominator`, `12m PCV1%`) %>%
@@ -1808,7 +1808,7 @@ fwrite(combined_2020, file.path(clean_dir, "COVER_2020_Cleaned.csv"))
 # Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
 validate_cover_data(combined_2020, "2020/2021 Full", valid_utlas_2019_to_2021)
 
-#### 🫧 Final check for 2020 🫧 ####
+#### 🫧 Final check for 2020/2021 🫧 ####
 combined_2020 %>%
   group_by(Quarter) %>%
   summarise(Unique_UTLAs = n_distinct(ONS_Code))
@@ -1821,10 +1821,10 @@ utla_list %>% filter(UTLA_code %in% missing_utlas)
 #####################################
 #####################################
 
-#### ⋆˚࿔ 2 0 2 1 𝜗𝜚˚ ⋆ ####
+#### ⋆˚࿔ 2021/2022 (Apr 2021 - Mar 2022) 𝜗𝜚˚ ⋆ ####
 
-#### 🫧 2021 Q1 🫧 ####
-file_path = file.path(main_dir, "2021 Q1.ods")
+#### 🫧 2021/2022 Q1 (Apr-Jun 2021) 🫧 ####
+file_path = file.path(main_dir, "2021_2022_Q1.ods")
 
 la12 = read_ods(file_path, sheet = "12m_UTLA_GOR") %>%
   select(`ONS Upper Tier LA Code`, `Upper Tier LA Name`, `12m Denominator`, `12m PCV1%`) %>%
@@ -1864,8 +1864,8 @@ fwrite(merged_LA, file.path(clean_dir, "COVER_2021_Q1_Cleaned.csv"))
 # Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
 validate_cover_data(merged_LA, "2021/2022 Q1", valid_utlas_2019_to_2021)
 
-#### 🫧 2021 Q2 🫧 ####
-file_path = file.path(main_dir, "2021 Q2.ods")
+#### 🫧 2021/2022 Q2 (Jul-Sep 2021) 🫧 ####
+file_path = file.path(main_dir, "2021_2022_Q2.ods")
 
 la12 = read_ods(file_path, sheet = "12m_UTLA_GOR", skip = 4) %>%
   select(`ONS UTLA code`, `UTLA name`, `12m denominator`, `12m PCV1%`) %>%
@@ -1907,8 +1907,8 @@ fwrite(combined_2021, file.path(clean_dir, "COVER_2021_Q1_Q2_Cleaned.csv"))
 # Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
 validate_cover_data(combined_2021, "2021/2022 Q1-Q2", valid_utlas_2019_to_2021)
 
-#### 🫧 2021 Q3 🫧 ####
-file_path = file.path(main_dir, "2021 Q3.ods")
+#### 🫧 2021/2022 Q3 (Oct-Dec 2021) 🫧 ####
+file_path = file.path(main_dir, "2021_2022_Q3.ods")
 
 la12 = read_ods(file_path, sheet = "12m_UTLA_GOR", skip = 4) %>%
   select(`ONS UTLA code`, `UTLA name`, `12 month denominator`, `12 month PCV1%`) %>%
@@ -1950,8 +1950,8 @@ fwrite(combined_2021, file.path(clean_dir, "COVER_2021_Q1_Q2_Q3_Cleaned.csv"))
 # Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
 validate_cover_data(combined_2021, "2021/2022 Q1-Q3", valid_utlas_2019_to_2021)
 
-#### 🫧 2021 Q4 🫧 ####
-file_path = file.path(main_dir, "2021 Q4.ods")
+#### 🫧 2021/2022 Q4 (Jan-Mar 2022) 🫧 ####
+file_path = file.path(main_dir, "2021_2022_Q4.ods")
 
 la12 = read_ods(file_path, sheet = "12m_UTLA_GOR", skip = 4) %>%
   select(`ONS UTLA code`, `UTLA name`, `12m denominator`, `12m PCV1%`) %>%
@@ -1993,7 +1993,7 @@ fwrite(combined_2021, file.path(clean_dir, "COVER_2021_Cleaned.csv"))
 # Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
 validate_cover_data(combined_2021, "2021/2022 Full", valid_utlas_2019_to_2021)
 
-#### 🫧 Final check for 2021 🫧 ####
+#### 🫧 Final check for 2021/2022 🫧 ####
 combined_2021 %>%
   group_by(Quarter) %>%
   summarise(Unique_UTLAs = n_distinct(ONS_Code))
@@ -2006,10 +2006,10 @@ utla_list %>% filter(UTLA_code %in% missing_utlas)
 #####################################
 #####################################
 
-#### ⋆˚࿔ 2 0 2 2 𝜗𝜚˚ ⋆ ####
+#### ⋆˚࿔ 2022/2023 (Apr 2022 - Mar 2023) 𝜗𝜚˚ ⋆ ####
 
-#### 🫧 2022 Q1 🫧 ####
-file_path = file.path(main_dir, "2022 Q1.ods")
+#### 🫧 2022/2023 Q1 (Apr-Jun 2022) 🫧 ####
+file_path = file.path(main_dir, "2022_2023_Q1.ods")
 
 la12 = read_ods(file_path, sheet = "12m_UTLA_GOR", skip = 4) %>%
   select(`ONS UTLA code`, `UTLA name`, `12m denominator`, `12m PCV1%`) %>%
@@ -2049,8 +2049,8 @@ fwrite(merged_LA, file.path(clean_dir, "COVER_2022_Q1_Cleaned.csv"))
 # Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
 validate_cover_data(merged_LA, "2022/2023 Q1", valid_utlas_2019_to_2021)
 
-#### 🫧 2022 Q2 🫧 ####
-file_path = file.path(main_dir, "2022 Q2.ods")
+#### 🫧 2022/2023 Q2 (Jul-Sep 2022) 🫧 ####
+file_path = file.path(main_dir, "2022_2023_Q2.ods")
 
 la12 = read_ods(file_path, sheet = "12m_UTLA_GOR", skip = 4) %>%
   select(`ONS UTLA code`, `UTLA name`, `12m denominator`, `12m PCV1%`) %>%
@@ -2092,8 +2092,8 @@ fwrite(combined_2022, file.path(clean_dir, "COVER_2022_Q1_Q2_Cleaned.csv"))
 # Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
 validate_cover_data(combined_2022, "2022/2023 Q1-Q2", valid_utlas_2019_to_2021)
 
-#### 🫧 2022 Q3 🫧 ####
-file_path = file.path(main_dir, "2022 Q3.ods")
+#### 🫧 2022/2023 Q3 (Oct-Dec 2022) 🫧 ####
+file_path = file.path(main_dir, "2022_2023_Q3.ods")
 
 la12 = read_ods(file_path, sheet = "12m_UTLA_GOR", skip = 4) %>%
   select(`ONS UTLA code`, `UTLA name`, `12m denominator`, `12m PCV1%`) %>%
@@ -2135,8 +2135,8 @@ fwrite(combined_2022, file.path(clean_dir, "COVER_2022_Q1_Q2_Q3_Cleaned.csv"))
 # Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
 validate_cover_data(combined_2022, "2022/2023 Q1-Q3", valid_utlas_2019_to_2021)
 
-#### 🫧 2022 Q4 🫧 ####
-file_path = file.path(main_dir, "2022 Q4.ods")
+#### 🫧 2022/2023 Q4 (Jan-Mar 2023) 🫧 ####
+file_path = file.path(main_dir, "2022_2023_Q4.ods")
 
 la12 = read_ods(file_path, sheet = "12m_UTLA_GOR", skip = 5) %>%
   select(`ONS upper tier local authority code`, `Upper tier local authority name`, `12 month denominator`, `12 month PCV1%`) %>%
@@ -2178,7 +2178,7 @@ fwrite(combined_2022, file.path(clean_dir, "COVER_2022_Cleaned.csv"))
 # Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
 validate_cover_data(combined_2022, "2022/2023 Full", valid_utlas_2019_to_2021)
 
-#### 🫧 Final check for 2022 🫧 ####
+#### 🫧 Final check for 2022/2023 🫧 ####
 combined_2022 %>%
   group_by(Quarter) %>%
   summarise(Unique_UTLAs = n_distinct(ONS_Code))
@@ -2191,10 +2191,10 @@ utla_list %>% filter(UTLA_code %in% missing_utlas)
 #####################################
 #####################################
 
-#### ⋆˚࿔ 2 0 2 3 𝜗𝜚˚ ⋆ ####
+#### ⋆˚࿔ 2023/2024 (Apr 2023 - Mar 2024) 𝜗𝜚˚ ⋆ ####
 
-#### 🫧 2023 Q1 🫧 ####
-file_path = file.path(main_dir, "2023 Q1.ods")
+#### 🫧 2023/2024 Q1 (Apr-Jun 2023) 🫧 ####
+file_path = file.path(main_dir, "2023_2024_Q1.ods")
 
 la12 = read_ods(file_path, sheet = "12m_UTLA_GOR", skip = 5) %>%
   select(`ONS UTLA code`, `UTLA name`, `12m denominator`, `12m PCV1%`) %>%
@@ -2234,8 +2234,8 @@ fwrite(merged_LA, file.path(clean_dir, "COVER_2023_Q1_Cleaned.csv"))
 # Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
 validate_cover_data(merged_LA, "2023/2024 Q1", valid_utlas_2019_to_2021)
 
-#### 🫧 2023 Q2 🫧 ####
-file_path = file.path(main_dir, "2023 Q2.ods")
+#### 🫧 2023/2024 Q2 (Jul-Sep 2023) 🫧 ####
+file_path = file.path(main_dir, "2023_2024_Q2.ods")
 
 la12 = read_ods(file_path, sheet = "12m_UTLA_GOR", skip = 6) %>%
   select(`ONS UTLA code`, `UTLA name`, `12m denominator`, `12m PCV1%`) %>%
@@ -2277,8 +2277,8 @@ fwrite(combined_2023, file.path(clean_dir, "COVER_2023_Q1_Q2_Cleaned.csv"))
 # Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
 validate_cover_data(combined_2023, "2023/2024 Q1-Q2", valid_utlas_2019_to_2021)
 
-#### 🫧 2023 Q3 🫧 ####
-file_path = file.path(main_dir, "2023 Q3.ods")
+#### 🫧 2023/2024 Q3 (Oct-Dec 2023) 🫧 ####
+file_path = file.path(main_dir, "2023_2024_Q3.ods")
 
 la12 = read_ods(file_path, sheet = "12m_UTLA_GOR", skip = 5) %>%
   select(`ONS UTLA code`, `UTLA name`, `12m denominator`, `12m PCV1%`) %>%
@@ -2320,8 +2320,8 @@ fwrite(combined_2023, file.path(clean_dir, "COVER_2023_Q1_Q2_Q3_Cleaned.csv"))
 # Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
 validate_cover_data(combined_2023, "2023/2024 Q1-Q3", valid_utlas_2019_to_2021)
 
-#### 🫧 2023 Q4 🫧 ####
-file_path = file.path(main_dir, "2023 Q4.ods")
+#### 🫧 2023/2024 Q4 (Jan-Mar 2024) 🫧 ####
+file_path = file.path(main_dir, "2023_2024_Q4.ods")
 
 la12 = read_ods(file_path, sheet = "12m_UTLA_GOR", skip = 5) %>%
   select(`ONS UTLA code`, `UTLA name`, `12m denominator`, `12m PCV1%`) %>%
@@ -2363,7 +2363,7 @@ fwrite(combined_2023, file.path(clean_dir, "COVER_2023_Cleaned.csv"))
 # Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
 validate_cover_data(combined_2023, "2023/2024 Full", valid_utlas_2019_to_2021)
 
-#### 🫧 Final check for 2023 🫧 ####
+#### 🫧 Final check for 2023/2024 🫧 ####
 combined_2023 %>%
   group_by(Quarter) %>%
   summarise(Unique_UTLAs = n_distinct(ONS_Code))
@@ -2376,10 +2376,10 @@ utla_list %>% filter(UTLA_code %in% missing_utlas)
 #####################################
 #####################################
 
-#### ⋆˚࿔ 2 0 2 4 𝜗𝜚˚ ⋆ ####
+#### ⋆˚࿔ 2024/2025 (Apr 2024 - Mar 2025) 𝜗𝜚˚ ⋆ ####
 
-#### 🫧 2024 Q1 🫧 ####
-file_path = file.path(main_dir, "2024 Q1.ods")
+#### 🫧 2024/2025 Q1 (Apr-Jun 2024) 🫧 ####
+file_path = file.path(main_dir, "2024_2025_Q1.ods")
 
 la12 = read_ods(file_path, sheet = "12m_UTLA_GOR", skip = 5) %>%
   select(`ONS UTLA code`, `UTLA name`, `12m denominator`, `12m PCV1 (%)`) %>%
@@ -2419,8 +2419,8 @@ fwrite(merged_LA, file.path(clean_dir, "COVER_2024_Q1_Cleaned.csv"))
 # Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
 validate_cover_data(merged_LA, "2024/2025 Q1", valid_utlas_2019_to_2021)
 
-#### 🫧 2024 Q2 🫧 ####
-file_path = file.path(main_dir, "2024 Q2.ods")
+#### 🫧 2024/2025 Q2 (Jul-Sep 2024) 🫧 ####
+file_path = file.path(main_dir, "2024_2025_Q2.ods")
 
 la12 = read_ods(file_path, sheet = "12m_UTLA_GOR", skip = 6) %>%
   select(`Code`, `Local authority`, `Number of children who reached 12 months in reporting quarter`, `Coverage at 12 months PCV1 (%)`) %>%
@@ -2462,8 +2462,8 @@ fwrite(combined_2024, file.path(clean_dir, "COVER_2024_Q1_Q2_Cleaned.csv"))
 # Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
 validate_cover_data(combined_2024, "2024/2025 Q1-Q2", valid_utlas_2019_to_2021)
 
-#### 🫧 2024 Q3 🫧 ####
-file_path = file.path(main_dir, "2024 Q3.ods")
+#### 🫧 2024/2025 Q3 (Oct-Dec 2024) 🫧 ####
+file_path = file.path(main_dir, "2024_2025_Q3.ods")
 
 la12 = read_ods(file_path, sheet = "Table5", skip = 5) %>%
   select(`Code`, `Local authority`, `Number of children who reached 12 months in reporting quarter`, `Coverage at 12 months PCV1 (%)`) %>%
@@ -2505,8 +2505,8 @@ fwrite(combined_2024, file.path(clean_dir, "COVER_Q1_Q2_Q3_Cleaned.csv"))
 # Validation check: List of ONS codes in final processed dataset should match the utla list from 2019 
 validate_cover_data(combined_2024, "2024/2025 Q1-Q3", valid_utlas_2019_to_2021)
 
-#### 🫧 2024 Q4 🫧 ####
-file_path = file.path(main_dir, "2024 Q4.ods")
+#### 🫧 2024/2025 Q4 (Jan-Mar 2025) 🫧 ####
+file_path = file.path(main_dir, "2024_2025_Q4.ods")
 
 la12 = read_ods(file_path, sheet = "Table_5", skip = 4) %>%
   select(`Code`, `Local authority`, `Number of children who reached 12 months in reporting quarter`, `Coverage at 12 months PCV1 (%)`) %>%
@@ -2548,7 +2548,7 @@ fwrite(combined_2024, file.path(clean_dir, "COVER_2024_Cleaned.csv"))
 # Validation check
 validate_cover_data(combined_2024, "2024/2025 Full", valid_utlas_2019_to_2021)
 
-#### 🫧 Final Check for 2024 🫧 ####
+#### 🫧 Final Check for 2024/2025 🫧 ####
 combined_2024 %>%
   group_by(Quarter) %>%
   summarise(Unique_UTLAs = n_distinct(ONS_Code))
