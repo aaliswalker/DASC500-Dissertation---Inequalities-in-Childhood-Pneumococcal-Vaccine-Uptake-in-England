@@ -616,12 +616,12 @@ plot_12m_comparison <- ggplot(pcv_comparison_12m,
     x = "Time (Year - Quarter)",
     y = "Mean PCV 12m Uptake (%)"
   ) +
-  theme_classic(base_size = 13) +
+  theme_classic(base_size = 14) +
   theme(
-    axis.text.x = element_text(angle = 45, hjust = 1, size = 7),
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 10),
     legend.position = "top",
     strip.background = element_rect(fill = "grey95"),
-    strip.text = element_text(face = "bold", size = 11),
+    strip.text = element_text(face = "bold", size = 13),
     plot.title = element_text(hjust = 0.5, size = 14, face = "bold")
   )
 
@@ -655,12 +655,12 @@ plot_24m_comparison <- ggplot(pcv_comparison_24m,
     x = "Time (Year - Quarter)",
     y = "Mean PCV 24m Uptake (%)"
   ) +
-  theme_classic(base_size = 13) +
+  theme_classic(base_size = 14) +
   theme(
-    axis.text.x = element_text(angle = 45, hjust = 1, size = 7),
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 10),
     legend.position = "top",
     strip.background = element_rect(fill = "grey95"),
-    strip.text = element_text(face = "bold", size = 11),
+    strip.text = element_text(face = "bold", size = 13),
     plot.title = element_text(hjust = 0.5, size = 14, face = "bold")
   )
 

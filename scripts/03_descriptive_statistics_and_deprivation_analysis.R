@@ -720,7 +720,8 @@ PCV_booster_gap_histogram_plot <- ggplot(combined_dropoff_data, aes(x = dropoff_
   
   # Ensure y-axis starts at 0 for both panels
   scale_y_continuous(
-    expand = expansion(mult = c(0, 0.05)) 
+    expand = expansion(mult = c(0, 0.05)),
+    limits = c(0, 50)
   )
 
 # Display the PCV uptake timeseries plot
