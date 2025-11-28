@@ -35,6 +35,6 @@ This repository contains the code, data processing, and analysis for my MSc Heal
   - 02_link_IMD_and_create_geographic_plots.R            #Harmonising COVER and IMD datasets, preparing them for analysis
   - 03_descriptive_statistics_and_deprivation_analysis.R #Generate descriptive statistics and visualisations for PCV uptake patterns by deprivation
   - 04_susceptibility_modeling.R                         #Calculate and visualise pneumococcal disease susceptibility patterns
-- results/           # Figures, tables, and model outputs
+- output/            # Figures, data processing and model outputs
 - README.md          # Project documentation
 
