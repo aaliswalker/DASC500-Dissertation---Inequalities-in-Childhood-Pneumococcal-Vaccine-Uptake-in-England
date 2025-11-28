@@ -364,8 +364,8 @@ line_types <- c(
   "Expected uptake (95%)" = "dotdash"
 )
 
-# Final Plot - Overall Time Trends
-ggplot(plot_data, aes(x = Quarter_Label, y = Uptake,
+# Overall Time Trends
+time_trends_plot <- ggplot(plot_data, aes(x = Quarter_Label, y = Uptake,
                       color = Timepoint, linetype = Timepoint, group = Timepoint)) +
   # Shaded COVID-19 area
   annotate("rect", xmin = covid_start, xmax = covid_end,
@@ -413,129 +413,8 @@ ggplot(plot_data, aes(x = Quarter_Label, y = Uptake,
     legend.position = "top"
   )
 
-#### Uptake by quintile at 12m ####
-
-# Calculate deprivation trend
-pcv_trend <- data %>%
-  group_by(Year, Quarter, imd_quintile) %>%
-  summarise(mean_PCV_12m = mean(PCV_12m, na.rm = TRUE), .groups = "drop") %>%
-  arrange(Year, Quarter, imd_quintile) %>%
-  mutate(
-    Quarter_Label = paste(Year, Quarter, sep = " "),
-    Quarter_Label = factor(Quarter_Label, levels = unique(paste(Year, Quarter, sep = " ")))
-  )
-
-# Set key time points
-change_point <- which(levels(pcv_trend$Quarter_Label) == "2020/2021 Q1")
-covid_start <- change_point
-covid_end <- which(levels(pcv_trend$Quarter_Label) == "2021/2022 Q4")
-
-# Plot
-ggplot(pcv_trend, aes(x = Quarter_Label, y = mean_PCV_12m, 
-                      color = as.factor(imd_quintile), group = imd_quintile)) +
-  # COVID-19 shaded area
-  annotate("rect", xmin = covid_start, xmax = covid_end, ymin = -Inf, ymax = Inf,
-           fill = "grey80", alpha = 0.4) +
-  # 95% target line
-  geom_hline(aes(yintercept = 95, linetype = "95% Target"), color = "#44AA99", linewidth = 1) +
-  # Uptake lines
-  geom_line(linewidth = 1) +
-  # Schedule change marker
-  geom_vline(xintercept = change_point, linetype = "dashed", color = "grey40", linewidth = 1.2) +
-  # Labels
-  annotate("text", x = change_point - 2, y = 82, 
-           label = "Schedule Change", color = "grey40", size = 3, angle = 90, vjust = -0.5) +
-  annotate("text", x = mean(c(covid_start, covid_end)) + 1, y = 80.5,
-           label = "COVID-19 pandemic", size = 3.2, color = "black") +
-  annotate("text", x = 7, y = 97, label = "2+1", color = "black", fontface = "bold", size = 4) +
-  annotate("text", x = 38, y = 97, label = "1+1", color = "black", fontface = "bold", size = 4) +
-  # Colours and legend
-  scale_color_manual(
-    values = pastel_palette,
-    name = "IMD Quintile",
-    labels = c("1 (Least deprived)", "2", "3", "4", "5 (Most deprived)")
-  ) +
-  scale_linetype_manual(
-    name = NULL,
-    values = c("95% Target" = "dotted"),
-    guide = guide_legend(order = 2, override.aes = list(color = "#44AA99"))
-  ) +
-  scale_y_continuous(limits = c(80, 100), breaks = seq(80, 100, 5)) +
-  labs(
-    x = "Time (Year - Quarter)",
-    y = "Mean PCV 12m Uptake (%)"
-  ) +
-  theme_classic(base_size = 14) +
-  theme(
-    axis.text.x = element_text(angle = 45, hjust = 1, size = 8),
-    plot.title = element_text(hjust = 0.5, face = "bold"),
-    legend.position = "top"
-  )
-
-#### Uptake by quintile at 24m ####
-
-# Calculate deprivation trend
-pcv_trend_24m <- data %>%
-  group_by(Year, Quarter, imd_quintile) %>%
-  summarise(mean_PCV_24m = mean(PCV_24m, na.rm = TRUE), .groups = "drop") %>%
-  arrange(Year, Quarter, imd_quintile) %>%
-  mutate(
-    Quarter_Label = paste(Year, Quarter, sep = " "),
-    Quarter_Label = factor(Quarter_Label, levels = unique(paste(Year, Quarter, sep = " ")))
-  )
-
-# Schedule + COVID windows
-change_point_24m <- which(levels(pcv_trend_24m$Quarter_Label) == "2020/2021 Q1")
-covid_start <- change_point_24m
-covid_end <- which(levels(pcv_trend_24m$Quarter_Label) == "2021/2022 Q4")
-
-# Plot
-ggplot(pcv_trend_24m, aes(x = Quarter_Label, y = mean_PCV_24m,
-                          color = as.factor(imd_quintile),
-                          group = imd_quintile)) +
-  # COVID-19 shaded area
-  annotate("rect", xmin = covid_start, xmax = covid_end, ymin = -Inf, ymax = Inf,
-           fill = "grey80", alpha = 0.4) +
-  # 95% target line
-  geom_hline(aes(yintercept = 95, linetype = "95% Target"), color = "#44AA99", linewidth = 1) +
-  # PCV uptake lines
-  geom_line(linewidth = 1) +
-  # Schedule change line
-  geom_vline(xintercept = change_point_24m, linetype = "dashed", color = "grey40", linewidth = 1.2) +
-  # Schedule change label
-  annotate("text", x = change_point_24m - 2, 
-           y = min(pcv_trend_24m$mean_PCV_24m, na.rm = TRUE) + 1.5,
-           label = "Schedule Change", color = "grey40", size = 3) +
-  # COVID-19 pandemic label
-  annotate("text", 
-           x = mean(c(covid_start, covid_end)) + 1,
-           y = min(pcv_trend_24m$mean_PCV_24m, na.rm = TRUE) + 0.3,
-           label = "COVID-19 pandemic", size = 3.2, color = "black") +
-  # 2+1 and 1+1 text annotations
-  annotate("text", x = 7, y = 97, label = "2+1", color = "black", fontface = "bold", size = 4) +
-  annotate("text", x = 38, y = 97, label = "1+1", color = "black", fontface = "bold", size = 4) +
-  # Color scale + linetype
-  scale_color_manual(
-    values = pastel_palette,
-    name = "IMD Quintile",
-    labels = c("1 (Least deprived)", "2", "3", "4", "5 (Most deprived)")
-  ) +
-  scale_linetype_manual(
-    name = NULL,
-    values = c("95% Target" = "dotted"),
-    guide = guide_legend(order = 2, override.aes = list(color = "#44AA99"))
-  ) +
-  scale_y_continuous(limits = c(80, 100), breaks = seq(80, 100, 5)) +
-  labs(
-    x = "Time (Year - Quarter)",
-    y = "Mean PCV 24m Uptake (%)"
-  ) +
-  theme_classic(base_size = 14) +
-  theme(
-    axis.text.x = element_text(angle = 45, hjust = 1, size = 8),
-    plot.title = element_text(hjust = 0.5, face = "bold"),
-    legend.position = "top"
-  )
+# Display the overall time trend plot
+print(time_trends_plot)
 
 #### FACET - Combined 12m and 24m trends ####
 # Prepare 12m data
@@ -564,14 +443,14 @@ covid_start <- change_point
 covid_end <- which(levels(pcv_combined$Quarter_Label) == "2021/2022 Q4")
 
 # Plot with facet_wrap
-ggplot(pcv_combined, aes(x = Quarter_Label, y = mean_PCV,
+IMD_quintile_PCV_uptake_timeseries_plot <- ggplot(pcv_combined, aes(x = Quarter_Label, y = mean_PCV,
                          color = as.factor(imd_quintile), group = imd_quintile)) +
   annotate("rect", xmin = covid_start, xmax = covid_end, ymin = -Inf, ymax = Inf,
            fill = "grey80", alpha = 0.4) +
   geom_hline(aes(yintercept = 95, linetype = "95% Target"), color = "#44AA99", linewidth = 1) +
   geom_line(linewidth = 1) +
   geom_vline(xintercept = change_point, linetype = "dashed", color = "grey40", linewidth = 1.2) +
-  annotate("text", x = change_point - 2, y = 83, label = "Schedule Change", color = "grey40", size = 3, angle = 90) +
+  annotate("text", x = change_point - 1, y = 85, label = "Schedule Change", color = "grey40", size = 3, angle = 90) +
   annotate("text", x = mean(c(covid_start, covid_end)) + 1, y = 80.5,
            label = "COVID-19 pandemic", size = 3.2, color = "black") +
   annotate("text", x = 7, y = 97, label = "2+1", color = "black", fontface = "bold", size = 4) +
@@ -584,11 +463,20 @@ ggplot(pcv_combined, aes(x = Quarter_Label, y = mean_PCV,
   scale_y_continuous(limits = c(80, 100), breaks = seq(80, 100, 5)) +
   labs(x = "Time (Year - Quarter)",
        y = "Mean PCV Uptake (%)") +
-  theme_classic(base_size = 14) +
+  theme_classic(base_size = 12) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 8),
         plot.title = element_text(hjust = 0.5, face = "bold"),
         legend.position = "top") +
   facet_wrap(~Timepoint, ncol = 1)
+
+# Display the PCV uptake timeseries plot
+print(IMD_quintile_PCV_uptake_timeseries_plot)
+
+# Save the plot
+ggsave(file.path(output_dir, "PNG_figures/IMD_quintile_PCV_uptake_timeseries.png"), IMD_quintile_PCV_uptake_timeseries_plot, 
+       width = 16.59, height = 8.57, units = "cm", dpi = 600)
+ggsave(file.path(output_dir, "PDF_figures/IMD_quintile_PCV_uptake_timeseries.pdf"), IMD_quintile_PCV_uptake_timeseries_plot)
+cat("Time trend plot saved\n")
 
 ############################################
 #### BOOSTER RETENTION ANALYSIS ####
