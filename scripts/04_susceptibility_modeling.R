@@ -348,24 +348,29 @@ suscep_trend_plot <- ggplot(main_scenarios, aes(x = time_order, y = Susceptibili
     y = "Proportion Susceptible",
     caption = "Vertical line indicates schedule change (Jan 2020)"
   ) +
-  theme_minimal(base_size = 16) +
+  theme_minimal(base_size = 12) +
   theme(
-    strip.text = element_text(face = "bold", size = 16),
-    axis.text.x = element_text(angle = 45, hjust = 1, size = 14),
-    axis.text.y = element_text(size = 14),
-    axis.title.x = element_text(size = 16, face = "bold"),
-    axis.title.y = element_text(size = 16, face = "bold"),
+    strip.text = element_text(face = "bold", size = 14),
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 12),
+    axis.text.y = element_text(size = 12),
+    axis.title.x = element_text(size = 14, face = "bold"),
+    axis.title.y = element_text(size = 14, face = "bold"),
     legend.position = "right",
-    legend.title = element_text(size = 16, face = "bold"),
-    legend.text = element_text(size = 14),
+    legend.title = element_text(size = 14, face = "bold"),
+    legend.text = element_text(size = 12),
     legend.key.width = unit(1.5, "cm"),
     legend.key.height = unit(0.8, "cm"),
     panel.grid.minor = element_blank(),
     plot.caption = element_text(size = 12, color = "grey60"),
-    plot.title = element_text(hjust = 0.5, size = 18, face = "bold")
+    plot.title = element_text(hjust = 0.5, size = 16, face = "bold")
   )
 
 print(suscep_trend_plot)
+
+# Save the susceptibility trend plot
+ggsave(file.path(output_dir, "PNG_figures/suscep_trend_plot.png"), suscep_trend_plot, 
+       dpi = 600)
+ggsave(file.path(output_dir, "PDF_figures/suscep_trend_plot.pdf"), suscep_trend_plot)
 
 # =============================================================================
 # GEOGRAPHIC SUSCEPTIBILITY MAPS
@@ -449,6 +454,12 @@ geographic_suscep_map <- ggplot(map_data_subset) +
 
 print(geographic_suscep_map)
 
+# Save the geographic susceptibility map
+ggsave(file.path(output_dir, "PNG_figures/geographic_suscep_map.png"), geographic_suscep_map, 
+       dpi = 600)
+ggsave(file.path(output_dir, "PDF_figures/geographic_suscep_map.pdf"), geographic_suscep_map)
+
+
 # Create alternate assumption map for supplementary materials
 map_data_alternate <- england_map %>%
   left_join(
@@ -515,6 +526,12 @@ alternate_geographic_suscep_map <- ggplot(map_data_alternate) +
   )
 
 print(alternate_geographic_suscep_map)
+
+# Save the alternate geographic susceptibility map
+ggsave(file.path(output_dir, "PNG_figures/alternate_geographic_suscep_map.png"), alternate_geographic_suscep_map, 
+       dpi = 600)
+ggsave(file.path(output_dir, "PDF_figures/alternate_geographic_suscep_map.pdf"), alternate_geographic_suscep_map)
+
 
 # =============================================================================
 # LONDON ANALYSIS - WITH AND WITHOUT LONDON
@@ -610,6 +627,12 @@ plot_12m_comparison <- ggplot(pcv_comparison_12m,
 
 print(plot_12m_comparison)
 
+# Save the london comparison (PCV uptake at 12 months)
+ggsave(file.path(output_dir, "PNG_figures/London_comparison_12m.png"), plot_12m_comparison, 
+       dpi = 600)
+ggsave(file.path(output_dir, "PDF_figures/London_comparison_12m.pdf"), plot_12m_comparison)
+
+
 # Create comparison plot for 24-month coverage
 plot_24m_comparison <- ggplot(pcv_comparison_24m, 
                               aes(x = Quarter_Label, y = mean_PCV_24m, 
@@ -642,6 +665,12 @@ plot_24m_comparison <- ggplot(pcv_comparison_24m,
   )
 
 print(plot_24m_comparison)
+
+# Save the london comparison (PCV uptake at 24 months)
+ggsave(file.path(output_dir, "PNG_figures/London_comparison_24m.png"), plot_24m_comparison, 
+       dpi = 600)
+ggsave(file.path(output_dir, "PDF_figures/London_comparison_24m.pdf"), plot_24m_comparison)
+
 
 # =============================================================================
 # VALIDATION AND SUMMARY STATISTICS

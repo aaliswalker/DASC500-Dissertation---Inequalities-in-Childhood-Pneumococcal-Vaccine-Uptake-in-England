@@ -544,7 +544,7 @@ get_above_line_utlas <- function(data) {
 pre_above_line <- get_above_line_utlas(pre_schedule_gap_avg)
 post_above_line <- get_above_line_utlas(post_schedule_gap_avg)
 
-ggplot(combined_schedule_gap_data, aes(x = PCV_12m_lag, y = PCV_24m, color = as.factor(imd_quintile))) +
+PCV_uptake_scatter_plot <- ggplot(combined_schedule_gap_data, aes(x = PCV_12m_lag, y = PCV_24m, color = as.factor(imd_quintile))) +
   geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "grey70", linewidth = 1) +
   geom_point(size = 2.5, shape = 16, alpha = 0.8) +
   
@@ -600,25 +600,34 @@ ggplot(combined_schedule_gap_data, aes(x = PCV_12m_lag, y = PCV_24m, color = as.
   labs(
     x = "PCV Uptake at 12 Months (Previous Year) (%)",
     y = "PCV Uptake at 24 Months (%)",
-    caption = "Red: Largest booster gaps | Green: Lowest overall coverage | Blue: Higher 24m than 12m coverage"
+    caption = "Red: Largest booster gaps | Blue: Higher 24m than 12m coverage"
   ) +
   
   # Coordinate limits
   coord_fixed(ratio = 1, xlim = c(69, 101), ylim = c(65, 100)) +
   
-  theme_minimal(base_size = 13) +
+  theme_minimal(base_size = 10) +
   theme(
     panel.grid.major = element_line(color = "grey95", linewidth = 0.3),
     panel.grid.minor = element_blank(),
     legend.position = "bottom",
     legend.box = "horizontal",
     plot.caption = element_text(hjust = 0.5, size = 10, margin = margin(t = 10)),
-    plot.title = element_text(hjust = 0.5, face = "bold", size = 14),
-    plot.subtitle = element_text(hjust = 0.5, size = 12, margin = margin(b = 15)),
-    strip.text = element_text(face = "bold", size = 12, margin = margin(b = 10)),
+    plot.title = element_text(hjust = 0.5, face = "bold", size = 12),
+    plot.subtitle = element_text(hjust = 0.5, size = 10, margin = margin(b = 15)),
+    strip.text = element_text(face = "bold", size = 10, margin = margin(b = 10)),
     panel.spacing = unit(1.5, "lines"),
-    plot.margin = margin(t = 20, r = 100, b = 20, l = 100, unit = "pt")
+    plot.margin = margin(t = 0, r = 0, b = 0, l = 0, unit = "pt")
   )
+
+# Display the PCV uptake timeseries plot
+print(PCV_uptake_scatter_plot)
+
+# Save the plot
+ggsave(file.path(output_dir, "PNG_figures/PCV_uptake_scatter_plot.png"), PCV_uptake_scatter_plot, 
+       dpi = 600)
+ggsave(file.path(output_dir, "PDF_figures/PCV_uptake_scatter_plot.pdf"), PCV_uptake_scatter_plot)
+
 
 #### Booster Drop-off Histogram: Pre vs Post Schedule Change ####
 
@@ -640,14 +649,6 @@ post_dropoff_data <- post_schedule_gap_avg %>%
 # Combine the data
 combined_dropoff_data <- bind_rows(pre_dropoff_data, post_dropoff_data)
 
-# Get outlier thresholds for each period
-pre_iqr <- IQR(pre_dropoff_data$dropoff_pct, na.rm = TRUE)
-pre_q3 <- quantile(pre_dropoff_data$dropoff_pct, 0.75, na.rm = TRUE)
-pre_outlier_threshold <- pre_q3 + 1.5 * pre_iqr
-
-post_iqr <- IQR(post_dropoff_data$dropoff_pct, na.rm = TRUE)
-post_q3 <- quantile(post_dropoff_data$dropoff_pct, 0.75, na.rm = TRUE)
-post_outlier_threshold <- post_q3 + 1.5 * post_iqr
 
 # Calculate max y-value across both periods for consistent scaling
 max_y_pre <- max(ggplot_build(ggplot(pre_dropoff_data, aes(x = dropoff_pct)) + 
@@ -657,7 +658,7 @@ max_y_post <- max(ggplot_build(ggplot(post_dropoff_data, aes(x = dropoff_pct)) +
 max_y <- max(max_y_pre, max_y_post)
 
 # Create the comparison histogram
-ggplot(combined_dropoff_data, aes(x = dropoff_pct)) +
+PCV_booster_gap_histogram_plot <- ggplot(combined_dropoff_data, aes(x = dropoff_pct)) +
   geom_histogram(
     aes(fill = after_stat(x)),
     binwidth = 1,
@@ -679,19 +680,6 @@ ggplot(combined_dropoff_data, aes(x = dropoff_pct)) +
   
   # Y-axis reference line to emphasize distribution height
   geom_hline(yintercept = 0, color = "black", linewidth = 0.5) +
-  
-  # Outlier region shading (different for each panel)
-  geom_rect(data = data.frame(period = "1. Pre-Schedule Change (2+1)", 
-                              xmin = pre_outlier_threshold, 
-                              xmax = max(pre_dropoff_data$dropoff_pct) + 0.5),
-            aes(xmin = xmin, xmax = xmax, ymin = 0, ymax = Inf), 
-            fill = "#CC6677", alpha = 0.2, inherit.aes = FALSE) +
-  
-  geom_rect(data = data.frame(period = "2. Post-Schedule Change (1+1)", 
-                              xmin = post_outlier_threshold, 
-                              xmax = max(post_dropoff_data$dropoff_pct) + 0.5),
-            aes(xmin = xmin, xmax = xmax, ymin = 0, ymax = Inf), 
-            fill = "#CC6677", alpha = 0.2, inherit.aes = FALSE) +
   
   # Labels for perfect retention
   annotate("text", x = 0.5, y = Inf, 
@@ -734,6 +722,16 @@ ggplot(combined_dropoff_data, aes(x = dropoff_pct)) +
   scale_y_continuous(
     expand = expansion(mult = c(0, 0.05)) 
   )
+
+# Display the PCV uptake timeseries plot
+print(PCV_booster_gap_histogram_plot)
+
+# Save the plot
+ggsave(file.path(output_dir, "PNG_figures/PCV_booster_gap_histogram_plot.png"), PCV_booster_gap_histogram_plot, 
+       dpi = 600)
+ggsave(file.path(output_dir, "PDF_figures/PCV_booster_gap_histogram_plot.pdf"), PCV_booster_gap_histogram_plot)
+
+
 # Print summary statistics for booster gap with 1-year lag
 cat("\n=== BOOSTER DROP-OFF DISTRIBUTION WITH 1-YEAR LAG ===\n")
 cat("PRE-Schedule Change (2+1):\n")
