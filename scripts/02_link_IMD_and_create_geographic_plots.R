@@ -358,8 +358,10 @@ if (!file.exists(shapefile_path)) {
   print(quintile_map)
   
   # Save the map
-  ggsave(file.path(output_dir, "IMD_quintiles_map_boundary_corrected.png"), quintile_map, 
+  ggsave(file.path(output_dir, "PNG_figures/IMD_quintiles_map_boundary_corrected.png"), quintile_map, 
          width = 10, height = 12, dpi = 300)
+  ggsave(file.path(output_dir, "PDF_figures/IMD_quintiles_map_boundary_corrected.pdf"), quintile_map, 
+         width = 10, height = 12)
   cat("IMD quintile map (boundary-corrected) saved\n")
 }
 
