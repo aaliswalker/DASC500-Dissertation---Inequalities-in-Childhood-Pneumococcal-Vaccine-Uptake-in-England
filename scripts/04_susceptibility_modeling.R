@@ -18,11 +18,12 @@
 # - Geographic susceptibility mapping
 # - London inclusion/exclusion analysis
 # - Model validation and summary statistics
+# - Uptake geographic figures
 #
 # INPUTS: 
 # - output/COVER_All_Years_MERGED_WITH_IMD_NO_IMPUTATION.csv
 # - data/Shapefile/Local_Authority_(Upper_Tier)_IMD_2019_(WGS84).shp
-# OUTPUTS: Susceptibility trend plots, geographic maps, validation statistics
+# OUTPUTS: Susceptibility trend plots, geographic maps, validation statistics, Uptake geographic figures
 #===============================================================================
 
 # =============================================================================
