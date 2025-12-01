@@ -24,6 +24,7 @@ library("tidyverse")
 library("here")
 
 # Set working directory and paths
+output_dir <- here("output")
 data_file <- here("output", "COVER_All_Years_MERGED_WITH_IMD_NO_IMPUTATION.csv")
 
 if (!file.exists(data_file)) {
@@ -506,19 +507,6 @@ post_schedule_gap_avg <- post_schedule_gap %>%
   ) %>%
   mutate(period = "2. Post-Schedule Change (1+1)")
 
-pre_outliers$outliers <- pre_outliers$outliers %>%
-  mutate(period = "1. Pre-Schedule Change (2+1)")
-
-pre_outliers$lowest <- pre_outliers$lowest %>%
-  mutate(period = "1. Pre-Schedule Change (2+1)")
-
-# Post-schedule labels
-post_outliers$outliers <- post_outliers$outliers %>%
-  mutate(period = "2. Post-Schedule Change (1+1)")
-
-post_outliers$lowest <- post_outliers$lowest %>%
-  mutate(period = "2. Post-Schedule Change (1+1)")
-
 # Combine both periods
 combined_schedule_gap_data <- bind_rows(pre_schedule_gap_avg, post_schedule_gap_avg)
 
@@ -547,6 +535,20 @@ get_outliers <- function(data, n_outliers = 3) {
 # Get outliers for each period (limit to 1)
 pre_outliers <- get_outliers(pre_schedule_gap_avg, n_outliers = 1)
 post_outliers <- get_outliers(post_schedule_gap_avg, n_outliers = 1)
+
+# Pre-schedule labels
+pre_outliers$outliers <- pre_outliers$outliers %>%
+  mutate(period = "1. Pre-Schedule Change (2+1)")
+
+pre_outliers$lowest <- pre_outliers$lowest %>%
+  mutate(period = "1. Pre-Schedule Change (2+1)")
+
+# Post-schedule labels
+post_outliers$outliers <- post_outliers$outliers %>%
+  mutate(period = "2. Post-Schedule Change (1+1)")
+
+post_outliers$lowest <- post_outliers$lowest %>%
+  mutate(period = "2. Post-Schedule Change (1+1)")
 
 # Function to identify UTLAs above the retention line
 get_above_line_utlas <- function(data) {
@@ -752,9 +754,7 @@ cat("\n=== BOOSTER DROP-OFF DISTRIBUTION WITH 1-YEAR LAG ===\n")
 cat("PRE-Schedule Change (2+1):\n")
 cat("• Mean drop-off:", round(mean(pre_dropoff_data$dropoff_pct, na.rm = TRUE), 2), "percentage points\n")
 cat("• Median drop-off:", round(median(pre_dropoff_data$dropoff_pct, na.rm = TRUE), 2), "percentage points\n")
-cat("• Outlier threshold:", round(pre_outlier_threshold, 1), "percentage points\n\n")
 
 cat("POST-Schedule Change (1+1):\n")
 cat("• Mean drop-off:", round(mean(post_dropoff_data$dropoff_pct, na.rm = TRUE), 2), "percentage points\n")
 cat("• Median drop-off:", round(median(post_dropoff_data$dropoff_pct, na.rm = TRUE), 2), "percentage points\n")
-cat("• Outlier threshold:", round(post_outlier_threshold, 1), "percentage points\n")
