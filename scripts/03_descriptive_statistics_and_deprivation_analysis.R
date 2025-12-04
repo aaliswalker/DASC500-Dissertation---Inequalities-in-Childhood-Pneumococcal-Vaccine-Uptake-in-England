@@ -760,8 +760,6 @@ cat("• Median drop-off:", round(median(pre_dropoff_data$dropoff_pct, na.rm = T
 cat("POST-Schedule Change (1+1):\n")
 cat("• Mean drop-off:", round(mean(post_dropoff_data$dropoff_pct, na.rm = TRUE), 2), "percentage points\n")
 cat("• Median drop-off:", round(median(post_dropoff_data$dropoff_pct, na.rm = TRUE), 2), "percentage points\n")
-cat("• Outlier threshold:", round(post_outlier_threshold, 1), "percentage points\n")
-
 
 #######################################
 #### CUMULATIVE SUSCEPTIBLE CHILDREN ANALYSIS ####
@@ -957,8 +955,12 @@ figure_s5b <- ggplot(plot_data_clean,
 print(figure_s5b)
 
 # Save plots
-ggsave("Figure_S5a_Cumulative_Susceptible_Overall.png", figure_s5a, width = 12, height = 8, dpi = 300)
-ggsave("Figure_S5b_Cumulative_Susceptible_by_Quintile.png", figure_s5b, width = 12, height = 8, dpi = 300)
+ggsave(file.path(output_dir, "PNG_figures/Figure_S5a_Cumulative_Susceptible_Overall.png"), figure_s5a, width = 12, height = 8, dpi = 600)
+ggsave(file.path(output_dir, "PDF_figures/Figure_S5a_Cumulative_Susceptible_Overall.pdf"), figure_s5a)
+
+ggsave(file.path(output_dir, "PNG_figures/Figure_S5b_Cumulative_Susceptible_Overall.png"), figure_s5b, width = 12, height = 8, dpi = 600)
+ggsave(file.path(output_dir, "PDF_figures/Figure_S5b_Cumulative_Susceptible_by_Quintile.pdf"), figure_s5b)
+
 
 # Generate summary statistics
 cat("=== CUMULATIVE SUSCEPTIBILITY ANALYSIS SUMMARY ===\n\n")

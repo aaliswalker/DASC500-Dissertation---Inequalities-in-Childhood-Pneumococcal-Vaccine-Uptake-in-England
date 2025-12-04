@@ -934,8 +934,8 @@ coverage_24m_map <- ggplot(map_data_24m) +
 
 print(coverage_24m_map)
 
-# Optional: Save the plots
-ggsave("output/coverage_12m_geographic_map.png", coverage_12m_map, 
+# Save the plots
+ggsave(file.path(output_dir, "PNG_figures/coverage_12m_geographic_map.png"), coverage_12m_map, 
        width = 14, height = 12, dpi = 300)
-ggsave("output/coverage_24m_geographic_map.png", coverage_24m_map, 
+ggsave(file.path(output_dir, "PNG_figures/coverage_24m_geographic_map.png"), coverage_24m_map, 
        width = 14, height = 12, dpi = 300)
