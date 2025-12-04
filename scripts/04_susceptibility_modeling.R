@@ -18,11 +18,12 @@
 # - Geographic susceptibility mapping
 # - London inclusion/exclusion analysis
 # - Model validation and summary statistics
+# - Uptake geographic figures
 #
 # INPUTS: 
 # - output/COVER_All_Years_MERGED_WITH_IMD_NO_IMPUTATION.csv
 # - data/Shapefile/Local_Authority_(Upper_Tier)_IMD_2019_(WGS84).shp
-# OUTPUTS: Susceptibility trend plots, geographic maps, validation statistics
+# OUTPUTS: Susceptibility trend plots, geographic maps, validation statistics, Uptake geographic figures
 #===============================================================================
 
 # =============================================================================
@@ -807,3 +808,134 @@ if(length(bham_1plus1_12m_lag) > 0) {
   }
 }
 
+# =============================================================================
+# 12-MONTH AND 24-MONTH COVERAGE MAPS
+# =============================================================================
+
+# Prepare 12-month coverage map data
+map_data_12m <- england_map %>%
+  left_join(
+    data_clean %>%
+      group_by(Year, ONS_Code, utla_name) %>%
+      summarise(
+        PCV_12m_avg = weighted.mean(PCV_12m, Population_12m, na.rm = TRUE),
+        .groups = "drop"
+      ) %>%
+      mutate(ONS_Code = as.character(ONS_Code)),
+    by = c("ctyua19cd" = "ONS_Code")
+  ) %>%
+  mutate(
+    schedule_group = case_when(
+      Year < "2020/2021" ~ "2+1",
+      Year >= "2020/2021" ~ "1+1",
+      TRUE ~ NA_character_
+    ),
+    Schedule = factor(
+      schedule_group,
+      levels = c("2+1", "1+1"),
+      labels = c("2+1 Schedule", "1+1 Schedule")
+    ),
+    Year_Schedule = paste(Year, "-", Schedule)
+  ) %>%
+  filter(!is.na(Year) & !is.na(PCV_12m_avg))
+
+# Create 12-month coverage map
+coverage_12m_map <- ggplot(map_data_12m) +
+  geom_sf(aes(fill = PCV_12m_avg), color = "white", linewidth = 0.05) +
+  scale_fill_viridis_c(
+    name = "12-month\nCoverage (%)",
+    option = "viridis",
+    direction = 1,
+    limits = c(70, 100),
+    breaks = seq(70, 100, by = 10),
+    labels = function(x) paste0(x, "%"),
+    guide = guide_colorbar(
+      title.position = "top",
+      title.hjust = 0.5,
+      barwidth = unit(15, "cm"),
+      barheight = unit(0.6, "cm")
+    )
+  ) +
+  facet_wrap(~ Year_Schedule, ncol = 4) +
+  labs(
+    # caption = "Data: COVER / ONS | Higher values indicate better primary coverage"
+  ) +
+  theme_void(base_size = 10) +
+  theme(
+    strip.text = element_text(size = 9, margin = margin(b = 2), face = "bold"),
+    legend.position = "bottom",
+    legend.title = element_text(size = 8, face = "bold"),
+    legend.text = element_text(size = 9),
+    plot.caption = element_text(hjust = 0.5, size = 8, color = "grey60"),
+    plot.margin = margin(10, 10, 15, 10),
+    panel.spacing = unit(0.3, "lines")
+  )
+
+print(coverage_12m_map)
+
+# Prepare 24-month coverage map data
+map_data_24m <- england_map %>%
+  left_join(
+    data_clean %>%
+      group_by(Year, ONS_Code, utla_name) %>%
+      summarise(
+        PCV_24m_avg = weighted.mean(PCV_24m, Population_24m, na.rm = TRUE),
+        .groups = "drop"
+      ) %>%
+      mutate(ONS_Code = as.character(ONS_Code)),
+    by = c("ctyua19cd" = "ONS_Code")
+  ) %>%
+  mutate(
+    schedule_group = case_when(
+      Year < "2020/2021" ~ "2+1",
+      Year >= "2020/2021" ~ "1+1",
+      TRUE ~ NA_character_
+    ),
+    Schedule = factor(
+      schedule_group,
+      levels = c("2+1", "1+1"),
+      labels = c("2+1 Schedule", "1+1 Schedule")
+    ),
+    Year_Schedule = paste(Year, "-", Schedule)
+  ) %>%
+  filter(!is.na(Year) & !is.na(PCV_24m_avg))
+
+# Create 24-month coverage map
+coverage_24m_map <- ggplot(map_data_24m) +
+  geom_sf(aes(fill = PCV_24m_avg), color = "white", linewidth = 0.05) +
+  scale_fill_viridis_c(
+    name = "24-month\nCoverage (%)",
+    option = "viridis",
+    direction = 1,
+    limits = c(60, 100),
+    breaks = seq(60, 100, by = 10),
+    labels = function(x) paste0(x, "%"),
+    guide = guide_colorbar(
+      title.position = "top",
+      title.hjust = 0.5,
+      barwidth = unit(15, "cm"),
+      barheight = unit(0.6, "cm")
+    )
+  ) +
+  facet_wrap(~ Year_Schedule, ncol = 4) +
+  labs(
+    #caption = "Data: COVER / ONS | Higher values indicate better booster coverage"
+  ) +
+  theme_void(base_size = 10) +
+  theme(
+    strip.text = element_text(size = 9, margin = margin(b = 15), face = "bold"),
+    legend.position = "bottom",
+    legend.title = element_text(size = 7, face = "bold"),
+    legend.text = element_text(size = 9),
+    plot.caption = element_text(hjust = 0.5, size = 8, color = "grey60"),
+    plot.margin = margin(10, 10, 15, 10),
+    panel.spacing = unit(0.3, "lines")
+  )
+
+print(coverage_24m_map)
+
+# Optional: Save the plots
+ggsave("output/coverage_12m_geographic_map.png", coverage_12m_map, 
+       width = 14, height = 12, dpi = 300)
+ggsave("output/coverage_24m_geographic_map.png", coverage_24m_map, 
+       width = 14, height = 12, dpi = 300)

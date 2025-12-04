@@ -13,7 +13,7 @@
 # INPUTS: 
 # - output/COVER_All_Years_MERGED_WITH_IMD_NO_IMPUTATION.csv
 # - output/COVER_Booster_Gap_1YearLag.csv (if available)
-# OUTPUTS: Summary statistics, trend plots, retention analysis plots
+# OUTPUTS: Summary statistics, trend plots, retention analysis plots, cummulative susceptibility plots
 #===============================================================================
 
 library("readxl")
@@ -21,6 +21,8 @@ library("readr")
 library("RColorBrewer")
 library("ggrepel")
 library("tidyverse") 
+library("lubridate")
+library("scales")
 library("here")
 
 # Set working directory and paths
@@ -758,3 +760,263 @@ cat("• Median drop-off:", round(median(pre_dropoff_data$dropoff_pct, na.rm = T
 cat("POST-Schedule Change (1+1):\n")
 cat("• Mean drop-off:", round(mean(post_dropoff_data$dropoff_pct, na.rm = TRUE), 2), "percentage points\n")
 cat("• Median drop-off:", round(median(post_dropoff_data$dropoff_pct, na.rm = TRUE), 2), "percentage points\n")
+cat("• Outlier threshold:", round(post_outlier_threshold, 1), "percentage points\n")
+
+
+#######################################
+#### CUMULATIVE SUSCEPTIBLE CHILDREN ANALYSIS ####
+#######################################
+
+# Define vaccine effectiveness assumptions - BASELINE SCENARIO
+VE_assumptions <- list(
+  name = "Baseline Assumption",
+  set = 1,
+  assumption = "baseline",
+  ve_2plus1_primary = 0.761,      # 2+1 primary: 76.1%
+  ve_1plus1_primary = 0.606,      # 1+1 baseline: 60.6%
+  ve_booster = 0.782              # Booster: 78.2%
+)
+
+# Define schedule change point
+schedule_change_quarter <- "2020/2021 Q1"
+
+# Calculate susceptibility for each UTLA and quarter
+susceptibility_data <- data %>%
+  filter(!is.na(PCV_24m) & !is.na(Population_24m)) %>%
+  mutate(
+    # Determine which VE to use based on schedule period
+    # Using primary series effectiveness for susceptibility calculation
+    vaccine_effectiveness = ifelse(Year >= "2020/2021", 
+                                   VE_assumptions$ve_1plus1_primary, 
+                                   VE_assumptions$ve_2plus1_primary),
+    
+    # Calculate number vaccinated (using 24-month uptake as it represents completed schedule)
+    number_vaccinated = (PCV_24m / 100) * Population_24m,
+    number_unvaccinated = Population_24m - number_vaccinated,
+    
+    # Calculate number susceptible (accounting for vaccine effectiveness)
+    # Susceptible = Unvaccinated + (Vaccinated * (1 - VE))
+    number_susceptible = number_unvaccinated + (number_vaccinated * (1 - vaccine_effectiveness)),
+    
+    # Calculate proportion susceptible
+    proportion_susceptible = number_susceptible / Population_24m,
+    
+    # Create proper date for time series (approximate quarter end dates)
+    quarter_date = case_when(
+      Quarter == "Q1" ~ as.Date(paste0(substr(Year, 6, 9), "-03-31")),
+      Quarter == "Q2" ~ as.Date(paste0(substr(Year, 6, 9), "-06-30")),
+      Quarter == "Q3" ~ as.Date(paste0(substr(Year, 6, 9), "-09-30")),
+      Quarter == "Q4" ~ as.Date(paste0(substr(Year, 6, 9), "-12-31")),
+      TRUE ~ as.Date(NA)
+    ),
+    
+    # Create cohort label
+    cohort_label = paste(Year, Quarter)
+  ) %>%
+  arrange(quarter_date, imd_quintile)
+
+# Calculate cumulative susceptible children by deprivation quintile
+cumulative_susceptible <- susceptibility_data %>%
+  group_by(imd_quintile) %>%
+  arrange(quarter_date) %>%
+  mutate(
+    cumulative_susceptible = cumsum(number_susceptible),
+    cumulative_cohort = cumsum(Population_24m)
+  ) %>%
+  ungroup()
+
+# Calculate overall cumulative susceptible (all quintiles combined)
+overall_cumulative <- susceptibility_data %>%
+  arrange(quarter_date) %>%
+  group_by(quarter_date, cohort_label) %>%
+  summarise(
+    number_susceptible = sum(number_susceptible, na.rm = TRUE),
+    population = sum(Population_24m, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    cumulative_susceptible = cumsum(number_susceptible),
+    cumulative_population = cumsum(population),
+    imd_quintile = "Overall"
+  )
+
+# Combine overall with quintile-specific data for plotting
+plot_data <- cumulative_susceptible %>%
+  select(quarter_date, cohort_label, imd_quintile, cumulative_susceptible, cumulative_cohort) %>%
+  bind_rows(
+    overall_cumulative %>% 
+      select(quarter_date, cohort_label, imd_quintile, cumulative_susceptible, cumulative_cohort = cumulative_population)
+  )
+
+# Define colour palette 
+susceptibility_palette <- c(
+  "Overall" = "#333333",
+  "1" = pastel_palette[1],  # Light blue - Q1 (Least deprived)
+  "2" = pastel_palette[2],  # Pink/red - Q2
+  "3" = pastel_palette[3],  # Green - Q3
+  "4" = pastel_palette[4],  # Sand - Q4
+  "5" = pastel_palette[5]   # Dark blue - Q5 (Most deprived)
+)
+
+#### FIGURE S5a: Overall Cumulative Susceptible Children ####
+figure_s5a <- ggplot(plot_data %>% filter(imd_quintile == "Overall"), 
+                     aes(x = quarter_date, y = cumulative_susceptible)) +
+  geom_line(linewidth = 1.0, color = susceptibility_palette["Overall"]) +
+  geom_point(size = 2, color = susceptibility_palette["Overall"]) +
+  
+  # Schedule change annotation
+  geom_vline(xintercept = as.Date("2020-03-31"), linetype = "dashed", 
+             color = "red", linewidth = 1) +
+  annotate("text", x = as.Date("2020-03-31"), y = max(plot_data$cumulative_susceptible) * 0.9,
+           label = "Schedule Change", hjust = 0.6, vjust = -0.5, 
+           color = "red", size = 3.5, angle = 90) +
+  
+  # Scale and labels
+  scale_x_date(
+    breaks = seq.Date(from = min(plot_data$quarter_date, na.rm = TRUE),
+                      to = max(plot_data$quarter_date, na.rm = TRUE),
+                      by = "1 year"),
+    labels = date_format("%Y")
+  ) +
+  scale_y_continuous(
+    labels = comma_format(),
+    limits = c(0, max(plot_data$cumulative_susceptible, na.rm = TRUE) * 1.05)
+  ) +
+  
+  labs(
+    # title = "Cumulative Number of Susceptible Children to IPD",
+    # subtitle = "Based on observed uptake and literature-based vaccine effectiveness",
+    x = "Cohort (Year & Quarter)",
+    y = "Cumulative Number Susceptible"
+  ) +
+  
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(face = "bold", hjust = 0.5),
+    plot.subtitle = element_text(hjust = 0.5),
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    panel.grid.minor = element_blank(),
+    legend.position = "none"
+  )
+
+print(figure_s5a)
+
+
+
+#### FIGURE S5b ####
+plot_data_clean <- plot_data %>%
+  filter(imd_quintile != "Overall") %>%
+  mutate(
+    imd_quintile = factor(imd_quintile, levels = c("1", "2", "3", "4", "5"))
+  )
+
+figure_s5b <- ggplot(plot_data_clean, 
+                     aes(x = quarter_date, y = cumulative_susceptible, 
+                         color = imd_quintile, group = imd_quintile)) +
+  geom_line(linewidth = 1.2) +
+  
+  # Schedule change annotation
+  geom_vline(xintercept = as.Date("2020-03-31"), linetype = "dashed", 
+             color = "red", linewidth = 1) +
+  annotate("text", x = as.Date("2020-03-31"), y = 100000,
+           label = "Schedule Change", hjust = -1.7, vjust = - 0.7, 
+           color = "red", size = 3.5, angle = 90) +
+
+  scale_color_manual(
+    values = c("#88CCEE", "#CC6677", "#117733", "#DDCC77", "#332288"),
+    name = "IMD Quintile",
+    labels = c("1 (Least deprived)", "2", "3", "4", "5 (Most deprived)")
+  ) +
+  
+  scale_x_date(
+    breaks = seq.Date(from = min(plot_data_clean$quarter_date, na.rm = TRUE),
+                      to = max(plot_data_clean$quarter_date, na.rm = TRUE),
+                      by = "1 year"),
+    labels = date_format("%Y")
+  ) +
+  scale_y_continuous(
+    labels = comma_format(),
+    limits = c(0, 750000),
+    breaks = seq(0, 750000, by = 200000)
+  ) +
+  
+  labs(
+    x = "Cohort (Year & Quarter)",
+    y = "Cumulative Number Susceptible"
+  ) +
+  
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(face = "bold", hjust = 0.5),
+    plot.subtitle = element_text(hjust = 0.5),
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    panel.grid.minor = element_blank(),
+    legend.position = "right"
+  )
+
+print(figure_s5b)
+
+# Save plots
+ggsave("Figure_S5a_Cumulative_Susceptible_Overall.png", figure_s5a, width = 12, height = 8, dpi = 300)
+ggsave("Figure_S5b_Cumulative_Susceptible_by_Quintile.png", figure_s5b, width = 12, height = 8, dpi = 300)
+
+# Generate summary statistics
+cat("=== CUMULATIVE SUSCEPTIBILITY ANALYSIS SUMMARY ===\n\n")
+cat("Vaccine Effectiveness Assumptions (Baseline Scenario):\n")
+cat("• 2+1 schedule primary series:", VE_assumptions$ve_2plus1_primary * 100, "%\n")
+cat("• 1+1 schedule primary series:", VE_assumptions$ve_1plus1_primary * 100, "%\n")
+cat("• Booster dose:", VE_assumptions$ve_booster * 100, "%\n\n")
+
+# Final cumulative counts by quintile
+final_counts <- cumulative_susceptible %>%
+  group_by(imd_quintile) %>%
+  filter(quarter_date == max(quarter_date, na.rm = TRUE)) %>%
+  select(imd_quintile, cumulative_susceptible, cumulative_cohort) %>%
+  mutate(
+    proportion_susceptible = cumulative_susceptible / cumulative_cohort
+  )
+
+cat("Final Cumulative Susceptible Children by Deprivation Quintile:\n")
+for(i in 1:nrow(final_counts)) {
+  cat("Quintile", final_counts$imd_quintile[i], 
+      ifelse(final_counts$imd_quintile[i] == 1, "(Least deprived)", 
+             ifelse(final_counts$imd_quintile[i] == 5, "(Most deprived)", "")), ":\n")
+  cat("• Cumulative susceptible:", format(round(final_counts$cumulative_susceptible[i]), big.mark = ","), "\n")
+  cat("• Cumulative cohort:", format(round(final_counts$cumulative_cohort[i]), big.mark = ","), "\n")
+  cat("• Proportion susceptible:", round(final_counts$proportion_susceptible[i] * 100, 1), "%\n\n")
+}
+
+# Overall summary
+overall_final <- overall_cumulative %>%
+  filter(quarter_date == max(quarter_date, na.rm = TRUE))
+
+cat("OVERALL SUMMARY:\n")
+cat("• Total cumulative susceptible:", format(round(overall_final$cumulative_susceptible), big.mark = ","), "children\n")
+cat("• Total cumulative cohort:", format(round(overall_final$cumulative_population), big.mark = ","), "children\n")
+cat("• Overall proportion susceptible:", round((overall_final$cumulative_susceptible / overall_final$cumulative_population) * 100, 1), "%\n")
+cat("• Analysis period:", min(susceptibility_data$cohort_label), "to", max(susceptibility_data$cohort_label), "\n")
+
+# Calculate the impact of schedule change on susceptibility
+pre_schedule_susceptibility <- susceptibility_data %>%
+  filter(Year < "2020/2021") %>%
+  summarise(
+    avg_proportion_susceptible = mean(proportion_susceptible, na.rm = TRUE),
+    avg_ve = mean(vaccine_effectiveness, na.rm = TRUE)
+  )
+
+post_schedule_susceptibility <- susceptibility_data %>%
+  filter(Year >= "2020/2021") %>%
+  summarise(
+    avg_proportion_susceptible = mean(proportion_susceptible, na.rm = TRUE),
+    avg_ve = mean(vaccine_effectiveness, na.rm = TRUE)
+  )
+
+cat("\nIMPACT OF SCHEDULE CHANGE ON SUSCEPTIBILITY:\n")
+cat("• Pre-schedule (2+1):\n")
+cat("  - Average VE:", round(pre_schedule_susceptibility$avg_ve * 100, 1), "%\n")
+cat("  - Average susceptibility:", round(pre_schedule_susceptibility$avg_proportion_susceptible * 100, 1), "%\n")
+cat("• Post-schedule (1+1):\n")
+cat("  - Average VE:", round(post_schedule_susceptibility$avg_ve * 100, 1), "%\n")
+cat("  - Average susceptibility:", round(post_schedule_susceptibility$avg_proportion_susceptible * 100, 1), "%\n")
+cat("• Change in susceptibility:", round((post_schedule_susceptibility$avg_proportion_susceptible - pre_schedule_susceptibility$avg_proportion_susceptible) * 100, 1), "percentage points\n")
+
