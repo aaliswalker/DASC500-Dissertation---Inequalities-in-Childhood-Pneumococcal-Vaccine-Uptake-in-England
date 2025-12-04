@@ -618,7 +618,7 @@ PCV_uptake_scatter_plot <- ggplot(combined_schedule_gap_data, aes(x = PCV_12m_la
   labs(
     x = "PCV Uptake at 12 Months (Previous Year) (%)",
     y = "PCV Uptake at 24 Months (%)",
-    caption = "Red: Largest booster gaps | Blue: Higher 24m than 12m coverage"
+    caption = "Red: Largest booster gaps | Green: Lowest overall coverage | Blue: Higher 24m than 12m coverage"
   ) +
   
   # Coordinate limits
