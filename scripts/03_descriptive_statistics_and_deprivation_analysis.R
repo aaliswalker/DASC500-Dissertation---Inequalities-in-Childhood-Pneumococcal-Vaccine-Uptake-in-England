@@ -524,6 +524,8 @@ get_outliers <- function(data, n_outliers = 3) {
     arrange(desc(gap)) %>%
     slice_head(n = n_outliers)
   
+  largest_booster_gap <- data[data$gap == max(data$gap),]
+  
   above_line <- data %>% filter(PCV_24m > PCV_12m_lag)
   
   lowest_uptake <- data %>%
@@ -531,7 +533,7 @@ get_outliers <- function(data, n_outliers = 3) {
     filter(min_uptake == min(min_uptake, na.rm = TRUE)) %>%
     slice(1)
   
-  return(list(outliers = outliers, above_line = above_line, lowest = lowest_uptake))
+  return(list(outliers = outliers, largest_booster_gap = largest_booster_gap, above_line = above_line, lowest = lowest_uptake))
 }
 
 # Get outliers for each period (limit to 1)
@@ -575,7 +577,7 @@ PCV_uptake_scatter_plot <- ggplot(combined_schedule_gap_data, aes(x = PCV_12m_la
   # Labels 
   # RED
   ggrepel::geom_text_repel(
-    data = bind_rows(pre_outliers$outliers, post_outliers$outliers),
+    data = bind_rows(pre_outliers$largest_booster_gap, post_outliers$largest_booster_gap),
     aes(label = paste0(utla_name, " (", round(gap, 1), "%)")),
     color = "darkred", size = 3, fontface = "bold", max.overlaps = Inf
   ) +
