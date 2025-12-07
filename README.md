@@ -1,6 +1,11 @@
 # DASC500-Dissertation---Inequalities-in-Childhood-Pneumococcal-Vaccine-Uptake-in-England
 This repository contains the code, data processing, and analysis for my MSc Health Data Science dissertation:  "Examining trends and inequalities in childhood pneumococcal vaccine uptake in England: schedule changes and implications for protection amongst childhood cohorts."
 
+## 🌸 Zeno DOI
+
+[![DOI](https://zenodo.org/badge/1041513416.svg)](https://doi.org/10.5281/zenodo.17850025)
+
+
 ## 🌸 Aims
 
 🫧 Investigate trends and inequalities in uptake of the pneumococcal conjugate vaccine (PCV) across two immunisation schedules:
