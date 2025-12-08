@@ -4,8 +4,10 @@ This repository contains the code, data processing, and analysis for the scienti
 Preprint details: P Ilechukwu, D Hungerford, N French, EM Hill. (2025) Inequalities in childhood pneumococcal conjugate vaccine uptake in England before and after the change from a 2+1 to 1+1 schedule: a longitudinal study. *medRxiv*. doi: 10.64898/2025.12.05.25341691. URL: https://www.medrxiv.org/content/10.64898/2025.12.05.25341691v1
 
 Zenodo DOI for the code release associated with the preprint version of the manuscript:
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.17850026.svg)](https://doi.org/10.5281/zenodo.17850026)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.17854535.svg)](https://doi.org/10.5281/zenodo.17854535)
 
+This Zeonodo DOI represents all versions of the archvied code repository and will always resolve to the latest version: 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.17850025.svg)](https://doi.org/10.5281/zenodo.17850025)
 
 ## 🌸 Aims
 
