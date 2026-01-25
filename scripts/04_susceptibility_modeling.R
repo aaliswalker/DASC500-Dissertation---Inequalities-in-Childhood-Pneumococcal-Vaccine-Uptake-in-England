@@ -53,6 +53,7 @@ library("here")
 # Load boundary-corrected, non-imputed data from Script 2 output
 data_file <- here("output", "COVER_All_Years_MERGED_WITH_IMD_NO_IMPUTATION.csv")
 shapefile_path <- here("data", "Shapefile", "Local_Authority_(Upper_Tier)_IMD_2019_(WGS84).shp")
+output_dir <- here("output")
 
 # Load data and map
 data_clean <- read.csv(data_file)
@@ -320,27 +321,29 @@ main_scenarios <- quarterly_deprivation_all_scenarios %>%
     )
   )
 
-# Create susceptibility trend plot
-suscep_trend_plot <- ggplot(main_scenarios, aes(x = time_order, y = Susceptibility_prop)) +
+baseline_VE_scenario_data = main_scenarios[main_scenarios$assumption_label=="Baseline: 1+1 single dose = 60.6% VE",]
+alternate_VE_scenario_data = main_scenarios[main_scenarios$assumption_label=="Alternate: 1+1 single dose = 76.1% VE",]
+
+# Create susceptibility trend plot: Baseline vaccine effectiveness assumption
+suscep_trend_plot_baseline_ve <- ggplot(baseline_VE_scenario_data, aes(x = time_order, y = Susceptibility_prop)) +
   geom_line(
     aes(color = as.factor(imd_quintile)),
     linewidth = 1.8
   ) +
   geom_vline(
-    xintercept = which(unique(main_scenarios$YearQuarter) == "2019/2020 Q4"),
+    xintercept = which(unique(baseline_VE_scenario_data$YearQuarter) == "2019/2020 Q4"),
     linetype = "dashed",
     color = "gray40",
     linewidth = 0.8
   ) +
-  facet_wrap(~assumption_label, ncol = 1) +
   scale_color_manual(
     name = "IMD Quintile",
     values = pastel_palette[1:5],
     labels = c("1 (Least deprived)", "2", "3", "4", "5 (Most deprived)")
   ) +
   scale_x_continuous(
-    breaks = seq(1, max(main_scenarios$time_order), by = 4),
-    labels = unique(main_scenarios$YearQuarter)[seq(1, length(unique(main_scenarios$YearQuarter)), by = 4)]
+    breaks = seq(1, max(baseline_VE_scenario_data$time_order), by = 4),
+    labels = unique(baseline_VE_scenario_data$YearQuarter)[seq(1, length(unique(baseline_VE_scenario_data$YearQuarter)), by = 4)]
   ) +
   scale_y_continuous(labels = scales::percent_format(accuracy = 0.1)) +
   labs(
@@ -366,12 +369,64 @@ suscep_trend_plot <- ggplot(main_scenarios, aes(x = time_order, y = Susceptibili
     plot.title = element_text(hjust = 0.5, size = 16, face = "bold")
   )
 
-print(suscep_trend_plot)
+print(suscep_trend_plot_baseline_ve)
 
 # Save the susceptibility trend plot
-ggsave(file.path(output_dir, "PNG_figures/suscep_trend_plot.png"), suscep_trend_plot, 
+ggsave(file.path(output_dir, "PNG_figures/suscep_trend_baseline_VE_plot.png"), suscep_trend_plot_baseline_ve, 
        dpi = 600)
-ggsave(file.path(output_dir, "PDF_figures/suscep_trend_plot.pdf"), suscep_trend_plot)
+ggsave(file.path(output_dir, "PDF_figures/suscep_trend_baseline_VE_plot.pdf"), suscep_trend_plot_baseline_ve)
+
+# Create susceptibility trend plot: Alternate vaccine effectiveness assumption
+suscep_trend_plot_alternate_ve <- ggplot(alternate_VE_scenario_data, aes(x = time_order, y = Susceptibility_prop)) +
+  geom_line(
+    aes(color = as.factor(imd_quintile)),
+    linewidth = 1.8
+  ) +
+  geom_vline(
+    xintercept = which(unique(alternate_VE_scenario_data$YearQuarter) == "2019/2020 Q4"),
+    linetype = "dashed",
+    color = "gray40",
+    linewidth = 0.8
+  ) +
+  scale_color_manual(
+    name = "IMD Quintile",
+    values = pastel_palette[1:5],
+    labels = c("1 (Least deprived)", "2", "3", "4", "5 (Most deprived)")
+  ) +
+  scale_x_continuous(
+    breaks = seq(1, max(alternate_VE_scenario_data$time_order), by = 4),
+    labels = unique(alternate_VE_scenario_data$YearQuarter)[seq(1, length(unique(alternate_VE_scenario_data$YearQuarter)), by = 4)]
+  ) +
+  scale_y_continuous(labels = scales::percent_format(accuracy = 0.1)) +
+  labs(
+    #title = "Susceptibility Trends with 1-Year Lag Methodology",
+    x = "Year & Quarter",
+    y = "Proportion Susceptible",
+    caption = "Vertical line indicates schedule change (Jan 2020)"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    strip.text = element_text(face = "bold", size = 14),
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 12),
+    axis.text.y = element_text(size = 12),
+    axis.title.x = element_text(size = 14, face = "bold"),
+    axis.title.y = element_text(size = 14, face = "bold"),
+    legend.position = "right",
+    legend.title = element_text(size = 14, face = "bold"),
+    legend.text = element_text(size = 12),
+    legend.key.width = unit(1.5, "cm"),
+    legend.key.height = unit(0.8, "cm"),
+    panel.grid.minor = element_blank(),
+    plot.caption = element_text(size = 12, color = "grey60"),
+    plot.title = element_text(hjust = 0.5, size = 16, face = "bold")
+  )
+
+print(suscep_trend_plot_alternate_ve)
+
+# Save the susceptibility trend plot
+ggsave(file.path(output_dir, "PNG_figures/suscep_trend_alternate_VE_plot.png"), suscep_trend_plot_alternate_ve, 
+       dpi = 600)
+ggsave(file.path(output_dir, "PDF_figures/suscep_trend_alternate_VE_plot.pdf"), suscep_trend_plot_alternate_ve)
 
 # =============================================================================
 # GEOGRAPHIC SUSCEPTIBILITY MAPS
