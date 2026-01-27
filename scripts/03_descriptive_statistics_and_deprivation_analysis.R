@@ -858,8 +858,8 @@ susceptibility_palette <- c(
   "5" = pastel_palette[5]   # Dark blue - Q5 (Most deprived)
 )
 
-#### FIGURE S5a: Overall Cumulative Susceptible Children ####
-figure_s5a <- ggplot(plot_data %>% filter(imd_quintile == "Overall"), 
+#### Figure: Overall Cumulative Susceptible Children ####
+cumulative_suscep_fig <- ggplot(plot_data %>% filter(imd_quintile == "Overall"), 
                      aes(x = quarter_date, y = cumulative_susceptible)) +
   geom_line(linewidth = 1.0, color = susceptibility_palette["Overall"]) +
   geom_point(size = 2, color = susceptibility_palette["Overall"]) +
@@ -899,18 +899,18 @@ figure_s5a <- ggplot(plot_data %>% filter(imd_quintile == "Overall"),
     legend.position = "none"
   )
 
-print(figure_s5a)
+print(cumulative_suscep_fig)
 
 
 
-#### FIGURE S5b ####
+#### Figure: Cumulative susceptible children by IMD quintile ####
 plot_data_clean <- plot_data %>%
   filter(imd_quintile != "Overall") %>%
   mutate(
     imd_quintile = factor(imd_quintile, levels = c("1", "2", "3", "4", "5"))
   )
 
-figure_s5b <- ggplot(plot_data_clean, 
+cumulative_suscep_by_deprivation_fig <- ggplot(plot_data_clean, 
                      aes(x = quarter_date, y = cumulative_susceptible, 
                          color = imd_quintile, group = imd_quintile)) +
   geom_line(linewidth = 1.2) +
@@ -954,14 +954,14 @@ figure_s5b <- ggplot(plot_data_clean,
     legend.position = "right"
   )
 
-print(figure_s5b)
+print(cumulative_suscep_by_deprivation_fig)
 
 # Save plots
-ggsave(file.path(output_dir, "PNG_figures/Figure_S5a_Cumulative_Susceptible_Overall.png"), figure_s5a, width = 12, height = 8, dpi = 600)
-ggsave(file.path(output_dir, "PDF_figures/Figure_S5a_Cumulative_Susceptible_Overall.pdf"), figure_s5a)
+ggsave(file.path(output_dir, "PNG_figures/cumulative_suscep_fig_Cumulative_Susceptible_Overall.png"), cumulative_suscep_fig, width = 12, height = 8, dpi = 600)
+ggsave(file.path(output_dir, "PDF_figures/cumulative_suscep_fig_Cumulative_Susceptible_Overall.pdf"), cumulative_suscep_fig)
 
-ggsave(file.path(output_dir, "PNG_figures/Figure_S5b_Cumulative_Susceptible_Overall.png"), figure_s5b, width = 12, height = 8, dpi = 600)
-ggsave(file.path(output_dir, "PDF_figures/Figure_S5b_Cumulative_Susceptible_by_Quintile.pdf"), figure_s5b)
+ggsave(file.path(output_dir, "PNG_figures/cumulative_suscep_by_deprivation_fig_Cumulative_Susceptible_Overall.png"), cumulative_suscep_by_deprivation_fig, width = 12, height = 8, dpi = 600)
+ggsave(file.path(output_dir, "PDF_figures/cumulative_suscep_by_deprivation_fig_Cumulative_Susceptible_by_Quintile.pdf"), cumulative_suscep_by_deprivation_fig)
 
 
 # Generate summary statistics
