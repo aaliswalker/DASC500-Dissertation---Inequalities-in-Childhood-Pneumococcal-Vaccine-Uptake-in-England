@@ -450,7 +450,7 @@ IMD_quintile_PCV_uptake_timeseries_plot <- ggplot(pcv_combined, aes(x = Quarter_
                          color = as.factor(imd_quintile), group = imd_quintile)) +
   annotate("rect", xmin = covid_start, xmax = covid_end, ymin = -Inf, ymax = Inf,
            fill = "grey80", alpha = 0.4) +
-  geom_hline(aes(yintercept = 95, linetype = "95% Target"), color = "#44AA99", linewidth = 1) +
+  geom_hline(aes(yintercept = 95, linetype = "95% WHO target"), color = "#44AA99", linewidth = 1) +
   geom_line(linewidth = 1) +
   geom_vline(xintercept = change_point, linetype = "dashed", color = "grey40", linewidth = 1.2) +
   annotate("text", x = change_point - 1, y = 85, label = "Schedule Change", color = "grey40", size = 3, angle = 90) +
@@ -461,7 +461,7 @@ IMD_quintile_PCV_uptake_timeseries_plot <- ggplot(pcv_combined, aes(x = Quarter_
   scale_color_manual(values = pastel_palette,
                      name = "IMD Quintile",
                      labels = c("1 (Least deprived)", "2", "3", "4", "5 (Most deprived)")) +
-  scale_linetype_manual(name = NULL, values = c("95% Target" = "dotted"),
+  scale_linetype_manual(name = NULL, values = c("95% WHO target" = "dotted"),
                         guide = guide_legend(order = 2, override.aes = list(color = "#44AA99"))) +
   scale_y_continuous(limits = c(80, 100), breaks = seq(80, 100, 5)) +
   labs(x = "Time (Year - Quarter)",
@@ -618,8 +618,8 @@ PCV_uptake_scatter_plot <- ggplot(combined_schedule_gap_data, aes(x = PCV_12m_la
   
   # Labels and styling
   labs(
-    x = "PCV Uptake at 12 Months (Previous Year) (%)",
-    y = "PCV Uptake at 24 Months (%)",
+    x = "PCV primary dose uptake at 12 months (previous year) (%)",
+    y = "PCV booster dose uptake at 24 months (%)",
     caption = "Red: Largest booster gaps | Green: Lowest overall coverage | Blue: Higher 24m than 12m coverage"
   ) +
   

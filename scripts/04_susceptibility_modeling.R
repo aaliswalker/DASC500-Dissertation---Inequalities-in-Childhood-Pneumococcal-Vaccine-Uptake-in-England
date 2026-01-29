@@ -1,6 +1,6 @@
 #===============================================================================
 # SCRIPT: 04_susceptibility_modeling.R
-# PURPOSE: Calculate and visualize pneumococcal disease susceptibility patterns
+# PURPOSE: Calculate and visualise pneumococcal disease susceptibility patterns
 # 
 # DESCRIPTION: 
 # - Implements susceptibility modeling using vaccine effectiveness estimates
@@ -77,7 +77,7 @@ cat("Missing 24m data:", sum(is.na(data_clean$PCV_24m)), "\n")
 pastel_palette <- c("#88CCEE", "#CC6677", "#117733", "#DDCC77", "#332288", "#EE7733", "#44AA99")
 
 # =============================================================================
-# VACCINE EFFECTIVENESS SCENARIOS
+# VACCINE EFFECTIVENESS (VE) SCENARIOS
 # =============================================================================
 
 # Define VE scenarios based on manuscript Table 1 (central estimates only)
@@ -100,6 +100,46 @@ ve_scenarios <- list(
     ve_2plus1_primary = 0.761,      # 2+1 primary: 76.1%
     ve_1plus1_primary = 0.761,      # 1+1 alternate: 76.1% (same as 2+1)
     ve_booster = 0.782              # Booster: 78.2%
+  ),
+
+    # Baseline assumption with lower VE estimates
+  list(
+    name = "Baseline Assumption lower VE estimates",
+    set = 3,
+    assumption = "baseline lower VE",
+    ve_2plus1_primary = 0.6,      # 2+1 primary: 60%
+    ve_1plus1_primary = 0.29,      # 1+1 baseline: 29%
+    ve_booster = 0.6              # Booster: 60%
+  ),
+  
+  # Alternate assumption with lower VE estimates
+  list(
+    name = "Alternate Assumption lower VE estimates",
+    set = 4,
+    assumption = "alternate lower VE",
+    ve_2plus1_primary = 0.6,      # 2+1 primary: 60%
+    ve_1plus1_primary = 0.6,      # 1+1 baseline: 60%%
+    ve_booster = 0.6              # Booster: 60%
+  ),
+
+      # Baseline assumption with upper VE estimates
+  list(
+    name = "Baseline Assumption upper VE estimates",
+    set = 5,
+    assumption = "baseline upper VE",
+    ve_2plus1_primary = 0.86,      # 2+1 primary: 86%
+    ve_1plus1_primary = 0.78,      # 1+1 baseline: 78%
+    ve_booster = 0.89              # Booster: 89%
+  ),
+  
+  # Alternate assumption with upper VE estimates
+  list(
+    name = "Alternate Assumption upper VE estimates",
+    set = 6,
+    assumption = "alternate upper VE",
+    ve_2plus1_primary = 0.86,      # 2+1 primary: 86%
+    ve_1plus1_primary = 0.86,      # 1+1 baseline: 86%%
+    ve_booster = 0.89             # Booster: 89%
   )
 )
 
@@ -307,7 +347,7 @@ la_susceptibility_all_scenarios <- bind_rows(
 )
 
 # =============================================================================
-# SUSCEPTIBILITY TRENDS BY DEPRIVATION
+# SUSCEPTIBILITY TRENDS BY DEPRIVATION: Central VE estimates
 # =============================================================================
 
 # Prepare data for visualization
@@ -320,7 +360,6 @@ main_scenarios <- quarterly_deprivation_all_scenarios %>%
       "Alternate: 1+1 single dose = 76.1% VE"
     )
   )
-
 baseline_VE_scenario_data = main_scenarios[main_scenarios$assumption_label=="Baseline: 1+1 single dose = 60.6% VE",]
 alternate_VE_scenario_data = main_scenarios[main_scenarios$assumption_label=="Alternate: 1+1 single dose = 76.1% VE",]
 
@@ -427,6 +466,122 @@ print(suscep_trend_plot_alternate_ve)
 ggsave(file.path(output_dir, "PNG_figures/suscep_trend_alternate_VE_plot.png"), suscep_trend_plot_alternate_ve, 
        dpi = 600)
 ggsave(file.path(output_dir, "PDF_figures/suscep_trend_alternate_VE_plot.pdf"), suscep_trend_plot_alternate_ve)
+
+# =============================================================================
+# SUSCEPTIBILITY TRENDS BY DEPRIVATION: Lower VE estimates
+# =============================================================================
+
+baseline_lower_VE_scenario_data = main_scenarios[main_scenarios$scenario_set==3,]
+alternate_lower_VE_scenario_data = main_scenarios[main_scenarios$scenario_set==4,]
+
+# Create susceptibility trend plot: Baseline lower vaccine effectiveness assumption
+suscep_trend_plot_baseline_lower_ve <- ggplot(baseline_lower_VE_scenario_data, aes(x = time_order, y = Susceptibility_prop)) +
+  geom_line(
+    aes(color = as.factor(imd_quintile)),
+    linewidth = 1.8
+  ) +
+  geom_vline(
+    xintercept = which(unique(baseline_lower_VE_scenario_data$YearQuarter) == "2019/2020 Q4"),
+    linetype = "dashed",
+    color = "gray40",
+    linewidth = 0.8
+  ) +
+  scale_color_manual(
+    name = "IMD Quintile",
+    values = pastel_palette[1:5],
+    labels = c("1 (Least deprived)", "2", "3", "4", "5 (Most deprived)")
+  ) +
+  scale_x_continuous(
+    breaks = seq(1, max(baseline_lower_VE_scenario_data$time_order), by = 4),
+    labels = unique(baseline_lower_VE_scenario_data$YearQuarter)[seq(1, length(unique(baseline_lower_VE_scenario_data$YearQuarter)), by = 4)]
+  ) +
+  scale_y_continuous(labels = scales::percent_format(accuracy = 0.1)) +
+  labs(
+    #title = "Susceptibility Trends with 1-Year Lag Methodology",
+    x = "Year & Quarter",
+    y = "Proportion Susceptible",
+    caption = "Vertical line indicates schedule change (Jan 2020)"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    strip.text = element_text(face = "bold", size = 14),
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 12),
+    axis.text.y = element_text(size = 12),
+    axis.title.x = element_text(size = 14, face = "bold"),
+    axis.title.y = element_text(size = 14, face = "bold"),
+    legend.position = "right",
+    legend.title = element_text(size = 14, face = "bold"),
+    legend.text = element_text(size = 12),
+    legend.key.width = unit(1.5, "cm"),
+    legend.key.height = unit(0.8, "cm"),
+    panel.grid.minor = element_blank(),
+    plot.caption = element_text(size = 12, color = "grey60"),
+    plot.title = element_text(hjust = 0.5, size = 16, face = "bold")
+  )
+
+print(suscep_trend_plot_baseline_lower_ve)
+
+# Save the susceptibility trend plot
+ggsave(file.path(output_dir, "PNG_figures/suscep_trend_baseline_VE_lower_plot.png"), suscep_trend_plot_baseline_lower_ve, 
+       dpi = 600)
+ggsave(file.path(output_dir, "PDF_figures/suscep_trend_baseline_VE_lower_plot.pdf"), suscep_trend_plot_baseline_lower_ve)
+
+# Create susceptibility trend plot: Alternate lower vaccine effectiveness assumption
+suscep_trend_plot_alternate_lower_ve <- ggplot(alternate_lower_VE_scenario_data, aes(x = time_order, y = Susceptibility_prop)) +
+  geom_line(
+    aes(color = as.factor(imd_quintile)),
+    linewidth = 1.8
+  ) +
+  geom_vline(
+    xintercept = which(unique(alternate_lower_VE_scenario_data$YearQuarter) == "2019/2020 Q4"),
+    linetype = "dashed",
+    color = "gray40",
+    linewidth = 0.8
+  ) +
+  scale_color_manual(
+    name = "IMD Quintile",
+    values = pastel_palette[1:5],
+    labels = c("1 (Least deprived)", "2", "3", "4", "5 (Most deprived)")
+  ) +
+  scale_x_continuous(
+    breaks = seq(1, max(alternate_lower_VE_scenario_data$time_order), by = 4),
+    labels = unique(alternate_lower_VE_scenario_data$YearQuarter)[seq(1, length(unique(alternate_lower_VE_scenario_data$YearQuarter)), by = 4)]
+  ) +
+  scale_y_continuous(labels = scales::percent_format(accuracy = 0.1)) +
+  labs(
+    #title = "Susceptibility Trends with 1-Year Lag Methodology",
+    x = "Year & Quarter",
+    y = "Proportion Susceptible",
+    caption = "Vertical line indicates schedule change (Jan 2020)"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    strip.text = element_text(face = "bold", size = 14),
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 12),
+    axis.text.y = element_text(size = 12),
+    axis.title.x = element_text(size = 14, face = "bold"),
+    axis.title.y = element_text(size = 14, face = "bold"),
+    legend.position = "right",
+    legend.title = element_text(size = 14, face = "bold"),
+    legend.text = element_text(size = 12),
+    legend.key.width = unit(1.5, "cm"),
+    legend.key.height = unit(0.8, "cm"),
+    panel.grid.minor = element_blank(),
+    plot.caption = element_text(size = 12, color = "grey60"),
+    plot.title = element_text(hjust = 0.5, size = 16, face = "bold")
+  )
+
+print(suscep_trend_plot_alternate_lower_ve)
+
+# Save the susceptibility trend plot
+ggsave(file.path(output_dir, "PNG_figures/suscep_trend_alternate_lower_VE_plot.png"), suscep_trend_plot_alternate_lower_ve, 
+       dpi = 600)
+ggsave(file.path(output_dir, "PDF_figures/suscep_trend_alternate_lower_VE_plot.pdf"), suscep_trend_plot_alternate_lower_ve)
+
+
+# =============================================================================
+# SUSCEPTIBILITY TRENDS BY DEPRIVATION: Upper VE estimates
+# =============================================================================
 
 # =============================================================================
 # GEOGRAPHIC SUSCEPTIBILITY MAPS
