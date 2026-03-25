@@ -138,13 +138,14 @@ for(i in 1:nrow(quintile_summary)) {
 cat("=== WHO TARGET ACHIEVEMENT (95%) ===\n")
 quarters_above_95_12m <- sum(data$PCV_12m >= 95, na.rm = TRUE)
 quarters_above_95_24m <- sum(data$PCV_24m >= 95, na.rm = TRUE)
-total_observations <- sum(!is.na(data$PCV_12m))
+total_observations_12m <- sum(!is.na(data$PCV_12m))
+total_observations_24m <- sum(!is.na(data$PCV_24m))
 
 cat("Quarterly observations meeting 95% target:\n")
-cat("• 12-month coverage:", quarters_above_95_12m, "out of", total_observations, 
-    "(", round(100 * quarters_above_95_12m / total_observations, 1), "%)\n")
-cat("• 24-month coverage:", quarters_above_95_24m, "out of", total_observations, 
-    "(", round(100 * quarters_above_95_24m / total_observations, 1), "%)\n\n")
+cat("• 12-month coverage:", quarters_above_95_12m, "out of", total_observations_12m, 
+    "(", round(100 * quarters_above_95_12m / total_observations_12m, 1), "%)\n")
+cat("• 24-month coverage:", quarters_above_95_24m, "out of", total_observations_24m, 
+    "(", round(100 * quarters_above_95_24m / total_observations_24m, 1), "%)\n\n")
 
 # WHO target achievement by schedule period
 cat("\n=== WHO TARGET ACHIEVEMENT BY SCHEDULE PERIOD ===\n")
