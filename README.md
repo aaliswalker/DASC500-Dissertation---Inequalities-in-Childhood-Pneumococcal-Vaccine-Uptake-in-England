@@ -1,12 +1,12 @@
 # DASC500-Dissertation---Inequalities-in-Childhood-Pneumococcal-Vaccine-Uptake-in-England
 This repository contains the code, data processing, and analysis for the scientific paper: "Inequalities in childhood pneumococcal conjugate vaccine uptake in England before and after the change from a 2+1 to 1+1 schedule: a longitudinal study" by Praise Ilechukwu, Daniel Hungerford, Neil French and Edward M. Hill.
 
-Preprint details: P Ilechukwu, D Hungerford, N French, EM Hill. (2025) Inequalities in childhood pneumococcal conjugate vaccine uptake in England before and after the change from a 2+1 to 1+1 schedule: a longitudinal study. *medRxiv*. doi: 10.64898/2025.12.05.25341691. URL: [https://www.medrxiv.org/content/10.64898/2025.12.05.25341691v1](https://www.medrxiv.org/content/10.64898/2025.12.05.25341691v1){:target="_blank"}
+Preprint details: P Ilechukwu, D Hungerford, N French, EM Hill. (2025) Inequalities in childhood pneumococcal conjugate vaccine uptake in England before and after the change from a 2+1 to 1+1 schedule: a longitudinal study. *medRxiv*. doi: 10.64898/2025.12.05.25341691. URL: [https://www.medrxiv.org/content/10.64898/2025.12.05.25341691v1](https://www.medrxiv.org/content/10.64898/2025.12.05.25341691v1)
 
 Zenodo DOI for the code release associated with the preprint version of the manuscript:
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.17854535.svg)](https://doi.org/10.5281/zenodo.17854535)
 
-Peer-reviewed publication details: P Ilechukwu, D Hungerford, N French, EM Hill. (2026) Inequalities in childhood pneumococcal conjugate vaccine uptake in England before and after the change from a 2+1 to 1+1 schedule: a longitudinal study. *The Lancet Regional Health - Europe*. doi: 10.1016/j.lanepe.2026.101667. URL: [https://doi.org/10.1016/j.lanepe.2026.101667](https://doi.org/10.1016/j.lanepe.2026.101667){:target="_blank"}
+Peer-reviewed publication details: P Ilechukwu, D Hungerford, N French, EM Hill. (2026) Inequalities in childhood pneumococcal conjugate vaccine uptake in England before and after the change from a 2+1 to 1+1 schedule: a longitudinal study. *The Lancet Regional Health - Europe*. doi: 10.1016/j.lanepe.2026.101667. URL: [https://doi.org/10.1016/j.lanepe.2026.101667](https://doi.org/10.1016/j.lanepe.2026.101667)
 
 Zenodo DOI for the code release associated with the peer-reviewed publication version of the manuscript:
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.19225364.svg)](https://doi.org/10.5281/zenodo.19225364) 
